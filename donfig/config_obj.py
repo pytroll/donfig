@@ -619,9 +619,3 @@ class Config(object):
                     os.remove(tmp)
         except OSError:
             pass
-
-# Hack to make pretty printing work easily
-def _pprint_handler(object, stream, indent, allowance, context, level):
-    return object.pprint(stream=stream, indent=indent)
-
-pprint.PrettyPrinter._dispatch[Config.__repr__] = _pprint_handler
