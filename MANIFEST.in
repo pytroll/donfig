@@ -1,0 +1,2 @@
+include versioneer.py
+include donfig/version.py
