@@ -1,6 +1,12 @@
 Donfig
 ======
 
+.. image:: https://travis-ci.org/pytroll/donfig.svg?branch=master
+    :target: https://travis-ci.org/pytroll/donfig
+
+.. image:: https://ci.appveyor.com/api/projects/status/mx2xytb89voslo6h/branch/master?svg=true
+    :target: https://ci.appveyor.com/project/pytroll/donfig/branch/master
+
 Donfig is a python library meant to make configuration easier for other
 python packages. Donfig can be configured programmatically, by
 environment variables, or from YAML files in standard locations. The

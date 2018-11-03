@@ -1,6 +1,7 @@
 language: generic
 env:
   global:
+  - CODECOV_TOKEN="5c7759c2-a50f-44fd-84f4-b222b34693d0"
   - PYTHON_VERSION=$TRAVIS_PYTHON_VERSION
   - NUMPY_VERSION=stable
   - MAIN_CMD='python setup.py'
