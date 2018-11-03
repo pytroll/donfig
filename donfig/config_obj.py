@@ -25,6 +25,7 @@ import ast
 import os
 import sys
 import threading
+from copy import deepcopy
 from collections import Mapping
 
 try:
@@ -37,8 +38,8 @@ try:
     string_types = (str,)
 except ImportError:
     # python 2
-    import __builtin__ as builtins
-    string_types = (basestring,)
+    import __builtin__ as builtins  # noqa
+    string_types = (basestring,)  # noqa
 
 if sys.version_info[0] == 2:
     # python 2
@@ -81,7 +82,7 @@ def update(old, new, priority='new'):
 
     See Also
     --------
-    dask.config.merge
+    donfig.config_obj.merge
 
     """
     for k, v in new.items():
@@ -111,7 +112,7 @@ def merge(*dicts):
 
     See Also
     --------
-    dask.config.update
+    donfig.config_obj.update
 
     """
     result = {}
@@ -220,15 +221,20 @@ def collect_env(prefix, env=None):
 class ConfigSet(object):
     """Temporarily set configuration values within a context manager
 
+    Note, this class should be used directly from the `Config`
+    object via the :meth:`donfig.Config.set` method.
+
     Examples
     --------
-    >>> import dask
-    >>> with dask.config.set({'foo': 123}):
+    >>> from donfig.config_obj import ConfigSet
+    >>> import mypkg
+    >>> with ConfigSet(mypkg.config, {'foo': 123}):
     ...     pass
 
     See Also
     --------
-    dask.config.get
+    donfig.Config.set
+    donfig.Config.get
 
     """
     def __init__(self, config, lock, arg=None, **kwargs):
@@ -329,9 +335,7 @@ def expand_environment_variables(config):
 
 
 class Config(object):
-    def __init__(self, name, defaults=None,
-                 paths=None, env=None,
-                 env_var=None, root_env_var=None, env_prefix=None):
+    def __init__(self, name, defaults=None, paths=None, env=None, env_var=None, root_env_var=None, env_prefix=None):
         if root_env_var is None:
             root_env_var = '{}_ROOT_CONFIG'.format(name.upper())
         if paths is None:
@@ -369,10 +373,12 @@ class Config(object):
         Parameters
         ----------
         paths : List[str]
-            A list of paths to search for yaml config files
+            A list of paths to search for yaml config files. Defaults to the
+            paths passed when creating this object.
 
         env : dict
-            The system environment variables
+            The system environment variables to search through. Defaults to
+            the environment dictionary passed when creating this object.
 
         Returns
         -------
@@ -380,7 +386,7 @@ class Config(object):
 
         See Also
         --------
-        dask.config.refresh: collect configuration and update into primary config
+        donfig.Config.refresh: collect configuration and update into primary config
 
         """
         if paths is None:
@@ -397,10 +403,7 @@ class Config(object):
         return merge(*configs)
 
     def refresh(self, **kwargs):
-        """Update configuration by re-reading yaml files and env variables
-
-        This mutates the global dask.config.config, or the config parameter if
-        passed in.
+        """Update configuration by re-reading yaml files and env variables.
 
         This goes through the following stages:
 
@@ -416,11 +419,11 @@ class Config(object):
 
         See Also
         --------
-        dask.config.collect: for parameters
-        dask.config.update_defaults
+        donfig.Config.collect: for parameters
+        donfig.Config.update_defaults
 
         """
-        self.config.clear()
+        self.clear()
 
         for d in self.defaults:
             update(self.config, d, priority='old')
@@ -434,7 +437,8 @@ class Config(object):
 
         Examples
         --------
-        >>> from dask import config
+        >>> from donfig import Config
+        >>> config = Config('mypkg')
         >>> config.get('foo')  # doctest: +SKIP
         {'x': 1, 'y': 2}
 
@@ -446,7 +450,7 @@ class Config(object):
 
         See Also
         --------
-        dask.config.set
+        donfig.Config.set
 
         """
         keys = key.split('.')
@@ -467,13 +471,53 @@ class Config(object):
 
         It does two things:
 
-        1.  Add the defaults to a global collection to be used by refresh later
-        2.  Updates the global config with the new configuration
+        1.  Add the defaults to a collection to be used by refresh() later
+        2.  Updates the config with the new configuration
             prioritizing older values over newer ones
 
         """
         self.defaults.append(new)
         update(self.config, new, priority='old')
+
+    def to_dict(self):
+        """Return dictionary copy of configuration.
+
+        .. warning::
+
+            This will copy all keys and values. This includes values that
+            may cause unwanted side effects depending on what values exist
+            in the current configuration.
+
+        """
+        return deepcopy(self.config)
+
+    def clear(self):
+        """Clear all existing configuration."""
+        self.config.clear()
+
+    def merge(self, *dicts):
+        """Merge this configuration with multiple dictionaries.
+
+        See :func:`~donfig.config_obj.merge` for more information.
+
+        """
+        self.config = merge(self.config, dicts)
+
+    def update(self, new, priority='new'):
+        """Update the internal configuration dictionary with `new`.
+
+        See :func:`~donfig.config_obj.update` for more information.
+
+        """
+        self.config = update(self.config, new, priority=priority)
+
+    def expand_environment_variables(self):
+        """Expand any environment variables in this configuration in-place.
+
+        See :func:`~donfig.config_obj.expand_environment_variables` for more information.
+
+        """
+        self.config = expand_environment_variables(self.config)
 
     def rename(self, aliases):
         """Rename old keys to new keys
@@ -495,6 +539,20 @@ class Config(object):
         self.set(new)
 
     def set(self, arg=None, **kwargs):
+        """Set configuration values within a context manager.
+
+        Examples
+        --------
+        >>> from donfig import Config
+        >>> config = Config('mypkg')
+        >>> with config.set({'foo': 123}):
+        ...     pass
+
+        See Also
+        --------
+        donfig.Config.get
+
+        """
         return ConfigSet(self.config, self.config_lock, arg=arg, **kwargs)
 
     def ensure_file(self, source, destination=None, comment=True):
@@ -503,7 +561,7 @@ class Config(object):
         This tries to move a default configuration file to a default location if
         if does not already exist.  It also comments out that file by default.
 
-        This is to be used by downstream modules (like dask.distributed) that may
+        This is to be used by downstream modules that may
         have default configuration files that they wish to include in the default
         configuration path.
 
@@ -512,8 +570,8 @@ class Config(object):
         source : string, filename
             Source configuration file, typically within a source directory.
         destination : string, directory
-            Destination directory. Configurable by ``DASK_CONFIG`` environment
-            variable, falling back to ~/.config/dask.
+            Destination directory. Configurable by ``<CONFIG NAME>_CONFIG``
+            environment variable, falling back to ~/.config/<config name>.
         comment : bool, True by default
             Whether or not to comment out the config file when copying.
 

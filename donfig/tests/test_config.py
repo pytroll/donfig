@@ -375,4 +375,4 @@ def test_get_set_roundtrip(key):
 if __name__ == '__main__':
     import sys
     import pytest
-    sys.exit(pytest.main())
+    sys.exit(pytest.main(sys.argv))

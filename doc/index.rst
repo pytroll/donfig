@@ -6,10 +6,17 @@
 Donfig
 ======
 
+Donfig is a python library making package and script configuration easy. It
+is based on work originally done in the :doc:`dask <dask:configuration>` library for
+configuring itself and its subpackages. Donfig is a python library meant to
+make configuration easier for other python packages. Donfig can be configured
+programmatically, by environment variables, or from YAML files in standard
+locations.
+
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
 
+   installation
    configuration
 
 

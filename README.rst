@@ -7,22 +7,44 @@ Donfig
 .. image:: https://ci.appveyor.com/api/projects/status/mx2xytb89voslo6h/branch/master?svg=true
     :target: https://ci.appveyor.com/project/pytroll/donfig/branch/master
 
+.. image:: https://coveralls.io/repos/github/pytroll/donfig/badge.svg?branch=master
+    :target: https://coveralls.io/github/pytroll/donfig?branch=master
+
 Donfig is a python library meant to make configuration easier for other
 python packages. Donfig can be configured programmatically, by
 environment variables, or from YAML files in standard locations. The
 below examples show the basics of using donfig. For more details see the
 official `documentation <https://donfig.readthedocs.io/en/latest/>`_.
 
+Installation
+------------
+
+Donfig can be installed from PyPI using pip:
+
+.. code-block:: bash
+
+    pip install donfig
+
+Or with conda using the conda-forge channel:
+
+.. code-block:: bash
+
+    conda install -c conda-forge donfig
+
 Using Donfig
 ------------
 
-Create the package-wide configuration object for your package named `mypkg`::
+Create the package-wide configuration object for your package named `mypkg`:
+
+.. code-block:: python
 
     # mypkg/__init__.py
     from donfig import Config
     config = Config('mypkg')
 
-Use the configuration object::
+Use the configuration object:
+
+.. code-block:: python
 
     from mypkg import config
     important_val = config.get('important_key')
@@ -34,7 +56,9 @@ Use the configuration object::
 Set configuration in Python
 ---------------------------
 
-Configuration can be modified in python before code using it is called::
+Configuration can be modified in python before code using it is called:
+
+.. code-block:: python
 
     # mypkg/work.py
     from mypkg import config
@@ -42,7 +66,9 @@ Configuration can be modified in python before code using it is called::
 
     # use the configuration
 
-Donfig configurations can also be changed as a context manager::
+Donfig configurations can also be changed as a context manager:
+
+.. code-block:: python
 
     config.set(other_key=True)
 
@@ -63,7 +89,9 @@ the config object:
 
     export MYPKG_MY_KEY="a value"
 
-And can be accessed in python::
+And can be accessed in python:
+
+.. code-block:: python
 
     from mypkg import config
     print(config.get('my_key'))
@@ -99,7 +127,9 @@ License
 Original code from the dask library was distributed under the license
 specified in `DASK_LICENSE.txt`. In November 2018 this code was migrated to
 the Donfig project under the MIT license described in `LICENSE.txt`. The full
-copyright for this project is therefore::
+copyright for this project is therefore:
+
+.. code-block:: literal
 
     Copyright (c) 2018 Donfig Developers
     Copyright (c) 2014-2018, Anaconda, Inc. and contributors

@@ -27,6 +27,7 @@ install:
 - conda config --remove channels defaults
 - conda install -y $CONDA_DEPENDENCIES
 script:
+- flake8 donfig
 - pytest --cov=donfig donfig
 after_success:
 - if [[ $PYTHON_VERSION == 3.6 ]]; then coveralls; codecov; fi
