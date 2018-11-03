@@ -28,6 +28,7 @@ import os
 import sys
 import threading
 from collections import Mapping
+from six import string_types
 
 try:
     import yaml
@@ -120,6 +121,38 @@ def merge(*dicts):
     return result
 
 
+def normalize_key(key):
+    """ Replaces underscores with hyphens in string keys
+
+    Parameters
+    ----------
+    key : string, int, or float
+        Key to assign.
+    """
+    if isinstance(key, string_types):
+        key = key.replace('_', '-')
+    return key
+
+
+def normalize_nested_keys(config):
+    """ Replaces underscores with hyphens for keys for a nested Mapping
+
+    Examples
+    --------
+    >>> a = {'x': 1, 'y_1': {'a_2': 2}}
+    >>> normalize_nested_keys(a)
+    {'x': 1, 'y-1': {'a-2': 2}}
+    """
+    config_norm = {}
+    for key, value in config.items():
+        if isinstance(value, Mapping):
+            value = normalize_nested_keys(value)
+        key_norm = normalize_key(key)
+        config_norm[key_norm] = value
+
+    return config_norm
+
+
 def collect_yaml(paths):
     """Collect configuration from yaml files
 
@@ -146,6 +179,7 @@ def collect_yaml(paths):
     for path in file_paths:
         with open(path) as f:
             data = yaml.load(f.read()) or {}
+            data = normalize_nested_keys(data)
             configs.append(data)
 
     return configs
@@ -170,6 +204,7 @@ def collect_env(prefix, env=None):
     for name, value in env.items():
         if name.startswith(prefix):
             varname = name[5:].lower().replace('__', '.').replace('_', '-')
+            varname = normalize_key(varname)
             try:
                 d[varname] = ast.literal_eval(value)
             except (SyntaxError, ValueError):
@@ -245,16 +280,16 @@ class ConfigSet(object):
             Used internally to hold the path of old values
 
         """
+        key = normalize_key(keys[0])
         if len(keys) == 1:
             if old is not None:
-                path_key = tuple(path + [keys[0]])
-                if keys[0] in d:
-                    old[path_key] = d[keys[0]]
+                path_key = tuple(path + [key])
+                if key in d:
+                    old[path_key] = d[key]
                 else:
                     old[path_key] = '--delete--'
-            d[keys[0]] = value
+            d[key] = value
         else:
-            key = keys[0]
             if key not in d:
                 d[key] = {}
                 if old is not None:
@@ -418,6 +453,7 @@ class Config(object):
         keys = key.split('.')
         result = self.config
         for k in keys:
+            k = normalize_key(k)
             try:
                 result = result[k]
             except (TypeError, IndexError, KeyError):
