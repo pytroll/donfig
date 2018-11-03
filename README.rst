@@ -2,7 +2,7 @@ Donfig
 ======
 
 Donfig is a python library meant to make configuration easier for other
-python packages. Donfig can be configured programmatically by the user, by
+python packages. Donfig can be configured programmatically, by
 environment variables, or from YAML files in standard locations. The
 below examples show the basics of using donfig. For more details see the
 official `documentation <https://donfig.readthedocs.io/en/latest/>`_.
@@ -10,56 +10,73 @@ official `documentation <https://donfig.readthedocs.io/en/latest/>`_.
 Using Donfig
 ------------
 
-Create the package-wide configuration object:
+Create the package-wide configuration object for your package named `mypkg`::
 
-```python
-# mypkg/__init__.py
-from donfig import Config
-config = Config('mypkg')
-```
+    # mypkg/__init__.py
+    from donfig import Config
+    config = Config('mypkg')
 
-Use the configuration object:
+Use the configuration object::
 
-```python
-from mypkg import config
-important_val = config.get('important_key')
-if important_val:
-    # do something
-else:
-    # something else
-```
+    from mypkg import config
+    important_val = config.get('important_key')
+    if important_val:
+        # do something
+    else:
+        # something else
 
 Set configuration in Python
 ---------------------------
 
-```python
-# mypkg/work.py
-from mypkg import config
-config.set(important_key=5)
+Configuration can be modified in python before code using it is called::
 
-# use the configuration
-```
+    # mypkg/work.py
+    from mypkg import config
+    config.set(important_key=5)
 
-Donfig configurations can also be changed as a context manager:
+    # use the configuration
 
-```python
-config.set(other_key=True)
+Donfig configurations can also be changed as a context manager::
 
-with config.set(other_key=False):
-    print(config.get('other_key'))  # False
+    config.set(other_key=True)
 
-print(config.get('other_key'))  # True
-```
+    with config.set(other_key=False):
+        print(config.get('other_key'))  # False
+
+    print(config.get('other_key'))  # True
 
 Configure from environment variables
 ------------------------------------
 
-TODO
+Environment variables are automatically loaded when the Config object is
+created. Any environment variable starting with the name of the config
+object in all capital letters and an underscore will be loaded in to
+the config object:
+
+.. code-block:: bash
+
+    export MYPKG_MY_KEY="a value"
+
+And can be accessed in python::
+
+    from mypkg import config
+    print(config.get('my_key'))
 
 Configure from YAML file
 ------------------------
 
-TODO
+Donfig will also automatically load any YAML configuration files found in
+specific paths. The default paths:
+
+- ~/.config/<config name>/
+- /etc/<config name>/
+- <sys.prefix>/etc/<config name>/
+
+Note the `/etc/<config name>/` directory can also be specified with the
+environment variable `DASK_ROOT_CONFIG`. Also note that
+`~/.config/<package name>` (or other location specified with `DASK_CONFIG`)
+can be created as a custom user configuration file for easier user
+customization (see documentation for details).
 
 History
 -------
@@ -67,7 +84,8 @@ History
 Donfig is based on the original configuration logic of the `dask` library.
 The code has been modified to use a config object instead of a global
 configuration dictionary. This makes the configuration logic of dask available
-to everyone.
+to everyone. The name "donfig" is a shortening of "dask.config", the original
+dask module that implemented this functionality.
 
 License
 -------

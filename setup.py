@@ -21,7 +21,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import os
 from setuptools import setup, find_packages
 import versioneer
 
@@ -43,17 +42,6 @@ setup(name=NAME,
       url="https://github.com/pytroll/satpy",
       test_suite='satpy.tests.suite',
       packages=find_packages(),
-      package_data={'satpy': [os.path.join('etc', 'geo_image.cfg'),
-                              os.path.join('etc', 'areas.yaml'),
-                              os.path.join('etc', 'satpy.cfg'),
-                              os.path.join('etc', 'himawari-8.cfg'),
-                              os.path.join('etc', 'eps_avhrrl1b_6.5.xml'),
-                              os.path.join('etc', 'readers', '*.yaml'),
-                              os.path.join('etc', 'writers', '*.yaml'),
-                              os.path.join('etc', 'composites', '*.yaml'),
-                              os.path.join('etc', 'enhancements', '*.cfg'),
-                              os.path.join('etc', 'enhancements', '*.yaml'),
-                              ]},
       zip_safe=False,
       install_requires=[],
       tests_require=['pytest'],
