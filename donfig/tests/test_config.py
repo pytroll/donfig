@@ -26,8 +26,9 @@ import os
 
 import pytest
 
-from donfig._config import Config, update, merge, collect_yaml, collect_env, expand_environment_variables, normalize_keys, normalize_nested_keys
-from dask.utils import tmpfile
+from donfig.config_obj import (Config, update, merge, collect_yaml, collect_env, expand_environment_variables,
+                               normalize_key, normalize_nested_keys)
+from donfig.utils import tmpfile
 
 config_name = 'test'
 
@@ -355,16 +356,23 @@ def test_normalize_nested_keys():
 
 def test_env_var_normalization(monkeypatch):
     value = 3
-    monkeypatch.setenv('DASK_A_B', value)
-    d = {}
-    dask.config.refresh(config=d)
-    assert get('a_b', config=d) == value
-    assert get('a-b', config=d) == value
+    monkeypatch.setenv('TEST_A_B', value)
+    config = Config(config_name)
+
+    assert config.get('a_b') == value
+    assert config.get('a-b') == value
 
 
 @pytest.mark.parametrize('key', ['custom_key', 'custom-key'])
 def test_get_set_roundtrip(key):
     value = 123
-    with dask.config.set({key: value}):
-        assert dask.config.get('custom_key') == value
-        assert dask.config.get('custom-key') == value
+    config = Config(config_name)
+    with config.set({key: value}):
+        assert config.get('custom_key') == value
+        assert config.get('custom-key') == value
+
+
+if __name__ == '__main__':
+    import sys
+    import pytest
+    sys.exit(pytest.main())
