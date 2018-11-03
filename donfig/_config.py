@@ -27,44 +27,35 @@ import ast
 import os
 import sys
 import threading
+from collections import Mapping
+
 try:
     import yaml
 except ImportError:
     yaml = None
 
-from collections import Mapping
+try:
+    import builtins
+except ImportError:
+    # python 2
+    import __builtin__ as builtins
 
-from .compatibility import makedirs, builtins
-
+if sys.version_info[0] == 2:
+    # python 2
+    def makedirs(name, mode=0o777, exist_ok=True):
+        try:
+            os.makedirs(name, mode=mode)
+        except OSError:
+            if not exist_ok or not os.path.isdir(name):
+                raise
+else:
+    makedirs = os.makedirs
 
 no_default = '__no_default__'
 
 
-paths = [
-    os.getenv('DASK_ROOT_CONFIG', '/etc/dask'),
-    os.path.join(sys.prefix, 'etc', 'dask'),
-    os.path.join(os.path.expanduser('~'), '.config', 'dask'),
-    os.path.join(os.path.expanduser('~'), '.dask')
-]
-
-if 'DASK_CONFIG' in os.environ:
-    PATH = os.environ['DASK_CONFIG']
-    paths.append(PATH)
-else:
-    PATH = os.path.join(os.path.expanduser('~'), '.config', 'dask')
-
-
-global_config = config = {}
-
-
-config_lock = threading.Lock()
-
-
-defaults = []
-
-
 def update(old, new, priority='new'):
-    """ Update a nested dictionary with values from another
+    """Update a nested dictionary with values from another
 
     This is like dict.update except that it smoothly merges nested values
 
@@ -91,6 +82,7 @@ def update(old, new, priority='new'):
     See Also
     --------
     dask.config.merge
+
     """
     for k, v in new.items():
         if k not in old and type(v) is dict:
@@ -106,7 +98,7 @@ def update(old, new, priority='new'):
 
 
 def merge(*dicts):
-    """ Update a sequence of nested dictionaries
+    """Update a sequence of nested dictionaries
 
     This prefers the values in the latter dictionaries to those in the former
 
@@ -120,6 +112,7 @@ def merge(*dicts):
     See Also
     --------
     dask.config.update
+
     """
     result = {}
     for d in dicts:
@@ -127,11 +120,12 @@ def merge(*dicts):
     return result
 
 
-def collect_yaml(paths=paths):
-    """ Collect configuration from yaml files
+def collect_yaml(paths):
+    """Collect configuration from yaml files
 
     This searches through a list of paths, expands to find all yaml or json
     files, and then parses each file.
+
     """
     # Find all paths
     file_paths = []
@@ -157,8 +151,8 @@ def collect_yaml(paths=paths):
     return configs
 
 
-def collect_env(env=None):
-    """ Collect config from environment variables
+def collect_env(prefix, env=None):
+    """Collect config from environment variables
 
     This grabs environment variables of the form "DASK_FOO__BAR_BAZ=123" and
     turns these into config variables of the form ``{"foo": {"bar-baz": 123}}``
@@ -168,12 +162,13 @@ def collect_env(env=None):
     -  Treats ``__`` (double-underscore) as nested access
     -  Replaces ``_`` (underscore) with a hyphen.
     -  Calls ``ast.literal_eval`` on the value
+
     """
     if env is None:
         env = os.environ
     d = {}
     for name, value in env.items():
-        if name.startswith('DASK_'):
+        if name.startswith(prefix):
             varname = name[5:].lower().replace('__', '.').replace('_', '-')
             try:
                 d[varname] = ast.literal_eval(value)
@@ -181,77 +176,15 @@ def collect_env(env=None):
                 d[varname] = value
 
     result = {}
-    set(d, config=result)
+    kwargs = d
+    for key, value in kwargs.items():
+        ConfigSet._assign(key.split('.'), value, result)
 
     return result
 
 
-def ensure_file(
-        source,
-        destination=None,
-        comment=True):
-    """
-    Copy file to default location if it does not already exist
-
-    This tries to move a default configuration file to a default location if
-    if does not already exist.  It also comments out that file by default.
-
-    This is to be used by downstream modules (like dask.distributed) that may
-    have default configuration files that they wish to include in the default
-    configuration path.
-
-    Parameters
-    ----------
-    source : string, filename
-        Source configuration file, typically within a source directory.
-    destination : string, directory
-        Destination directory. Configurable by ``DASK_CONFIG`` environment
-        variable, falling back to ~/.config/dask.
-    comment : bool, True by default
-        Whether or not to comment out the config file when copying.
-    """
-    if destination is None:
-        destination = PATH
-
-    # destination is a file and already exists, never overwrite
-    if os.path.isfile(destination):
-        return
-
-    # If destination is not an existing file, interpret as a directory,
-    # use the source basename as the filename
-    directory = destination
-    destination = os.path.join(directory, os.path.basename(source))
-
-    try:
-        if not os.path.exists(destination):
-            makedirs(directory, exist_ok=True)
-
-            # Atomically create destination.  Parallel testing discovered
-            # a race condition where a process can be busy creating the
-            # destination while another process reads an empty config file.
-            tmp = '%s.tmp.%d' % (destination, os.getpid())
-            with open(source) as f:
-                lines = list(f)
-
-            if comment:
-                lines = ['# ' + line
-                         if line.strip() and not line.startswith('#')
-                         else line
-                         for line in lines]
-
-            with open(tmp, 'w') as f:
-                f.write(''.join(lines))
-
-            try:
-                os.rename(tmp, destination)
-            except OSError:
-                os.remove(tmp)
-    except OSError:
-        pass
-
-
-class set(object):
-    """ Temporarily set configuration values within a context manager
+class ConfigSet(object):
+    """Temporarily set configuration values within a context manager
 
     Examples
     --------
@@ -262,8 +195,9 @@ class set(object):
     See Also
     --------
     dask.config.get
+
     """
-    def __init__(self, arg=None, config=config, lock=config_lock, **kwargs):
+    def __init__(self, config, lock, arg=None, **kwargs):
         if arg and not kwargs:
             kwargs = arg
 
@@ -293,7 +227,7 @@ class set(object):
 
     @classmethod
     def _assign(cls, keys, value, d, old=None, path=[]):
-        """ Assign value into a nested configuration dictionary
+        """Assign value into a nested configuration dictionary
 
         Optionally record the old values in old
 
@@ -309,6 +243,7 @@ class set(object):
             If provided this will hold the old values
         path: List[str]
             Used internally to hold the path of old values
+
         """
         if len(keys) == 1:
             if old is not None:
@@ -328,139 +263,8 @@ class set(object):
             cls._assign(keys[1:], value, d[key], path=path + [key], old=old)
 
 
-def collect(paths=paths, env=None):
-    """
-    Collect configuration from paths and environment variables
-
-    Parameters
-    ----------
-    paths : List[str]
-        A list of paths to search for yaml config files
-
-    env : dict
-        The system environment variables
-
-    Returns
-    -------
-    config: dict
-
-    See Also
-    --------
-    dask.config.refresh: collect configuration and update into primary config
-    """
-    if env is None:
-        env = os.environ
-    configs = []
-
-    if yaml:
-        configs.extend(collect_yaml(paths=paths))
-
-    configs.append(collect_env(env=env))
-
-    return merge(*configs)
-
-
-def refresh(config=config, defaults=defaults, **kwargs):
-    """
-    Update configuration by re-reading yaml files and env variables
-
-    This mutates the global dask.config.config, or the config parameter if
-    passed in.
-
-    This goes through the following stages:
-
-    1.  Clearing out all old configuration
-    2.  Updating from the stored defaults from downstream libraries
-        (see update_defaults)
-    3.  Updating from yaml files and environment variables
-
-    Note that some functionality only checks configuration once at startup and
-    may not change behavior, even if configuration changes.  It is recommended
-    to restart your python process if convenient to ensure that new
-    configuration changes take place.
-
-    See Also
-    --------
-    dask.config.collect: for parameters
-    dask.config.update_defaults
-    """
-    config.clear()
-
-    for d in defaults:
-        update(config, d, priority='old')
-
-    update(config, collect(**kwargs))
-
-
-def get(key, default=no_default, config=config):
-    """
-    Get elements from global config
-
-    Use '.' for nested access
-
-    Examples
-    --------
-    >>> from dask import config
-    >>> config.get('foo')  # doctest: +SKIP
-    {'x': 1, 'y': 2}
-
-    >>> config.get('foo.x')  # doctest: +SKIP
-    1
-
-    >>> config.get('foo.x.y', default=123)  # doctest: +SKIP
-    123
-
-    See Also
-    --------
-    dask.config.set
-    """
-    keys = key.split('.')
-    result = config
-    for k in keys:
-        try:
-            result = result[k]
-        except (TypeError, IndexError, KeyError):
-            if default is not no_default:
-                return default
-            else:
-                raise
-    return result
-
-
-def rename(aliases, config=config):
-    """ Rename old keys to new keys
-
-    This helps migrate older configuration versions over time
-    """
-    old = list()
-    new = dict()
-    for o, n in aliases.items():
-        value = get(o, None, config=config)
-        if value is not None:
-            old.append(o)
-            new[n] = value
-
-    for k in old:
-        del config[k]  # TODO: support nested keys
-
-    set(new, config=config)
-
-
-def update_defaults(new, config=config, defaults=defaults):
-    """ Add a new set of defaults to the configuration
-
-    It does two things:
-
-    1.  Add the defaults to a global collection to be used by refresh later
-    2.  Updates the global config with the new configuration
-        prioritizing older values over newer ones
-    """
-    defaults.append(new)
-    update(config, new, priority='old')
-
-
 def expand_environment_variables(config):
-    ''' Expand environment variables in a nested config dictionary
+    """Expand environment variables in a nested config dictionary
 
     This function will recursively search through any nested dictionaries
     and/or lists.
@@ -478,7 +282,8 @@ def expand_environment_variables(config):
     --------
     >>> expand_environment_variables({'x': [1, 2, '$USER']})  # doctest: +SKIP
     {'x': [1, 2, 'my-username']}
-    '''
+
+    """
     if isinstance(config, Mapping):
         return {k: expand_environment_variables(v) for k, v in config.items()}
     elif isinstance(config, str):
@@ -489,5 +294,230 @@ def expand_environment_variables(config):
         return config
 
 
-refresh()
+class Config(object):
+    def __init__(self, name, defaults=None,
+                 paths=None, env=None,
+                 env_var=None, root_env_var=None, env_prefix=None):
+        if root_env_var is None:
+            root_env_var = '{}_ROOT_CONFIG'.format(name.upper())
+        if paths is None:
+            paths = [
+                os.getenv(root_env_var, '/etc/{}'.format(name)),
+                os.path.join(sys.prefix, 'etc', name),
+                os.path.join(os.path.expanduser('~'), '.config', name),
+                os.path.join(os.path.expanduser('~'), '.{}'.format(name))
+            ]
 
+        if env_prefix is None:
+            env_prefix = "{}_".format(name.upper())
+        if env is None:
+            env = os.environ
+        if env_var is None:
+            env_var = '{}_CONFIG'.format(name.upper())
+        if env_var in os.environ:
+            main_path = os.environ[env_var]
+            paths.append(main_path)
+        else:
+            main_path = os.path.join(os.path.expanduser('~'), '.config', name)
+
+        self.env_prefix = env_prefix
+        self.env = env
+        self.main_path = main_path
+        self.paths = paths
+        self.defaults = defaults or []
+        self.config = {}
+        self.config_lock = threading.Lock()
+        self.refresh()
+
+    def collect(self, paths=None, env=None):
+        """Collect configuration from paths and environment variables
+
+        Parameters
+        ----------
+        paths : List[str]
+            A list of paths to search for yaml config files
+
+        env : dict
+            The system environment variables
+
+        Returns
+        -------
+        config: dict
+
+        See Also
+        --------
+        dask.config.refresh: collect configuration and update into primary config
+
+        """
+        if paths is None:
+            paths = self.paths
+        if env is None:
+            env = self.env
+        configs = []
+
+        if yaml:
+            configs.extend(collect_yaml(paths=paths))
+
+        configs.append(collect_env(self.env_prefix, env=env))
+
+        return merge(*configs)
+
+    def refresh(self, **kwargs):
+        """Update configuration by re-reading yaml files and env variables
+
+        This mutates the global dask.config.config, or the config parameter if
+        passed in.
+
+        This goes through the following stages:
+
+        1.  Clearing out all old configuration
+        2.  Updating from the stored defaults from downstream libraries
+            (see update_defaults)
+        3.  Updating from yaml files and environment variables
+
+        Note that some functionality only checks configuration once at startup and
+        may not change behavior, even if configuration changes.  It is recommended
+        to restart your python process if convenient to ensure that new
+        configuration changes take place.
+
+        See Also
+        --------
+        dask.config.collect: for parameters
+        dask.config.update_defaults
+
+        """
+        self.config.clear()
+
+        for d in self.defaults:
+            update(self.config, d, priority='old')
+
+        update(self.config, self.collect(**kwargs))
+
+    def get(self, key, default=no_default):
+        """Get elements from global config
+
+        Use '.' for nested access
+
+        Examples
+        --------
+        >>> from dask import config
+        >>> config.get('foo')  # doctest: +SKIP
+        {'x': 1, 'y': 2}
+
+        >>> config.get('foo.x')  # doctest: +SKIP
+        1
+
+        >>> config.get('foo.x.y', default=123)  # doctest: +SKIP
+        123
+
+        See Also
+        --------
+        dask.config.set
+
+        """
+        keys = key.split('.')
+        result = self.config
+        for k in keys:
+            try:
+                result = result[k]
+            except (TypeError, IndexError, KeyError):
+                if default is not no_default:
+                    return default
+                else:
+                    raise
+        return result
+
+    def update_defaults(self, new):
+        """Add a new set of defaults to the configuration
+
+        It does two things:
+
+        1.  Add the defaults to a global collection to be used by refresh later
+        2.  Updates the global config with the new configuration
+            prioritizing older values over newer ones
+
+        """
+        self.defaults.append(new)
+        update(self.config, new, priority='old')
+
+    def rename(self, aliases):
+        """Rename old keys to new keys
+
+        This helps migrate older configuration versions over time
+
+        """
+        old = list()
+        new = dict()
+        for o, n in aliases.items():
+            value = self.get(o, None)
+            if value is not None:
+                old.append(o)
+                new[n] = value
+
+        for k in old:
+            del self.config[k]  # TODO: support nested keys
+
+        self.set(new)
+
+    def set(self, arg=None, **kwargs):
+        return ConfigSet(self.config, self.config_lock, arg=arg, **kwargs)
+
+    def ensure_file(self, source, destination=None, comment=True):
+        """Copy file to default location if it does not already exist
+
+        This tries to move a default configuration file to a default location if
+        if does not already exist.  It also comments out that file by default.
+
+        This is to be used by downstream modules (like dask.distributed) that may
+        have default configuration files that they wish to include in the default
+        configuration path.
+
+        Parameters
+        ----------
+        source : string, filename
+            Source configuration file, typically within a source directory.
+        destination : string, directory
+            Destination directory. Configurable by ``DASK_CONFIG`` environment
+            variable, falling back to ~/.config/dask.
+        comment : bool, True by default
+            Whether or not to comment out the config file when copying.
+
+        """
+        if destination is None:
+            destination = self.main_path
+
+        # destination is a file and already exists, never overwrite
+        if os.path.isfile(destination):
+            return
+
+        # If destination is not an existing file, interpret as a directory,
+        # use the source basename as the filename
+        directory = destination
+        destination = os.path.join(directory, os.path.basename(source))
+
+        try:
+            if not os.path.exists(destination):
+                makedirs(directory, exist_ok=True)
+
+                # Atomically create destination.  Parallel testing discovered
+                # a race condition where a process can be busy creating the
+                # destination while another process reads an empty config file.
+                tmp = '%s.tmp.%d' % (destination, os.getpid())
+                with open(source) as f:
+                    lines = list(f)
+
+                if comment:
+                    lines = ['# ' + line
+                             if line.strip() and not line.startswith('#')
+                             else line
+                             for line in lines]
+
+                with open(tmp, 'w') as f:
+                    f.write(''.join(lines))
+
+                try:
+                    os.rename(tmp, destination)
+                except OSError:
+                    os.remove(tmp)
+        except OSError:
+            pass
