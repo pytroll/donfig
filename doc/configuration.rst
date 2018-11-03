@@ -404,15 +404,3 @@ that they more closely track changes in the library.
 However, downstream libraries may choose alternative solutions, such as
 isolating their configuration within their library, rather than using the
 global mypkg.config system.
-
-API
----
-
-.. autofunction:: donfig.Config.get
-.. autofunction:: donfig.Config.set
-.. autofunction:: donfig.Config.merge
-.. autofunction:: donfig.Config.update
-.. autofunction:: donfig.Config.collect
-.. autofunction:: donfig.Config.refresh
-.. autofunction:: donfig.Config.ensure_file
-.. autofunction:: donfig.Config.expand_environment_variables
