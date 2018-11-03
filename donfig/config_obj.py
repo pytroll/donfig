@@ -25,6 +25,7 @@ import ast
 import os
 import sys
 import threading
+import pprint
 from copy import deepcopy
 from collections import Mapping
 
@@ -358,6 +359,7 @@ class Config(object):
         else:
             main_path = os.path.join(os.path.expanduser('~'), '.config', name)
 
+        self.name = name
         self.env_prefix = env_prefix
         self.env = env
         self.main_path = main_path
@@ -366,6 +368,9 @@ class Config(object):
         self.config = {}
         self.config_lock = threading.Lock()
         self.refresh()
+
+    def pprint(self, **kwargs):
+        return pprint.pprint(self.config, **kwargs)
 
     def collect(self, paths=None, env=None):
         """Collect configuration from paths and environment variables
@@ -614,3 +619,9 @@ class Config(object):
                     os.remove(tmp)
         except OSError:
             pass
+
+# Hack to make pretty printing work easily
+def _pprint_handler(object, stream, indent, allowance, context, level):
+    return object.pprint(stream=stream, indent=indent)
+
+pprint.PrettyPrinter._dispatch[Config.__repr__] = _pprint_handler

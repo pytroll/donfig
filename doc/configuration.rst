@@ -54,12 +54,14 @@ Access Configuration
    donfig.Config.get
 
 Once the configuration object is created, settings can be accessed using the
-``get`` method or the `config` dictionary inside the configuration object.
+``get`` method. To get a sense for what the configuration is in the current
+system the ``pprint`` method can be used to print the current state
+of the configuration.
 
 .. code-block:: python
 
    >>> from mypkg import config
-   >>> config.config
+   >>> config.pprint()
    {
      'logging': {
        'distributed': 'info',
@@ -79,13 +81,9 @@ Once the configuration object is created, settings can be accessed using the
    >>> config.get('logging.bokeh')  # use `.` for nested access
    'critical'
 
-You may wish to inspect the ``config.config`` dictionary to get a sense
-for what configuration is being used by your current system. However, it is
-suggested that ``get`` be the main method for accessing individual values.
-
 Note that the ``get`` function treats underscores and hyphens identically.
-For example, ``dask.config.get('num_workers')`` is equivalent to
-``dask.config.get('num-workers')``.
+For example, ``mypkg.config.get('num_workers')`` is equivalent to
+``mypkg.config.get('num-workers')``.
 
 
 Specify Configuration
@@ -177,11 +175,8 @@ or environment variables mentioned above.
 .. code-block:: python
 
    >>> import mypkg.config
-   >>> mypkg.config.config  # no configuration by default
-   {}
-
    >>> import mypkg.distributed
-   >>> mypkg.config.config  # New values have been added
+   >>> mypkg.config.pprint()  # New values have been added
    {'scheduler': ...,
     'worker': ...,
     'tls': ...}
@@ -192,9 +187,6 @@ Directly within Python
 
 .. autosummary::
    donfig.Config.set
-
-Configuration is stored within a normal Python dictionary in
-``mypkg.config.config`` and can be modified using normal Python operations.
 
 Additionally, you can temporarily set a configuration value using the
 ``mypkg.config.set`` function.  This function accepts a dictionary as an input
@@ -240,16 +232,15 @@ respecting order.
 
 .. code-block:: python
 
-   >>> mypkg.config.config
+   >>> mypkg.config.pprint()
    {}
    >>> mypkg.config.merge(x, y)
-   >>> mypkg.config.config
+   >>> mypkg.config.pprint()
    {'a': 1, 'b': 2, 'c': {'d': 4, 'e': 5}}
 
 You can also use the ``update`` method to update the existing configuration
 in place with a new configuration.  This can be done with priority being given
-to either config.  This is often used to update the global configuration in
-``mypkg.config.config``
+to either config.
 
 .. code-block:: python
 
@@ -278,13 +269,13 @@ default configuration.
 
 .. code-block:: python
 
-   >>> mypkg.config.config
+   >>> mypkg.config.pprint()
    {}
 
    >>> # make some changes to yaml files
 
    >>> mypkg.config.refresh()
-   >>> mypkg.config.config
+   >>> mypkg.config.pprint()
    {...}
 
 This function uses ``donfig.Config.collect``, which returns the configuration
