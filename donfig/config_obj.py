@@ -26,7 +26,6 @@ import os
 import sys
 import threading
 from collections import Mapping
-from six import string_types
 
 try:
     import yaml
@@ -35,9 +34,11 @@ except ImportError:
 
 try:
     import builtins
+    string_types = (str,)
 except ImportError:
     # python 2
     import __builtin__ as builtins
+    string_types = (basestring,)
 
 if sys.version_info[0] == 2:
     # python 2
