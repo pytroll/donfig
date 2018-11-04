@@ -127,9 +127,7 @@ License
 Original code from the dask library was distributed under the license
 specified in `DASK_LICENSE.txt`. In November 2018 this code was migrated to
 the Donfig project under the MIT license described in `LICENSE.txt`. The full
-copyright for this project is therefore:
-
-.. code-block:: literal
+copyright for this project is therefore::
 
     Copyright (c) 2018 Donfig Developers
     Copyright (c) 2014-2018, Anaconda, Inc. and contributors
