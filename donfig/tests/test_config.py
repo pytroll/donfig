@@ -356,7 +356,7 @@ def test_normalize_nested_keys():
 
 def test_env_var_normalization(monkeypatch):
     value = 3
-    monkeypatch.setenv('TEST_A_B', value)
+    monkeypatch.setenv('TEST_A_B', str(value))
     config = Config(config_name)
 
     assert config.get('a_b') == value
