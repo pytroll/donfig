@@ -372,6 +372,10 @@ def test_get_set_roundtrip(key):
         assert config.get('custom-key') == value
 
 
+def test_merge_None_to_dict():
+    assert merge({'a': None, 'c': 0}, {'a': {'b': 1}}) == {'a': {'b': 1}, 'c': 0}
+
+
 if __name__ == '__main__':
     import sys
     import pytest
