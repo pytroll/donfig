@@ -392,7 +392,7 @@ def test_merge_none_to_dict():
 def test_pprint(capsys):
     test_config = Config(config_name)
     test_config.config = {'x': 1, 'y': {'a': 2}}
-    test_config.pprint(indent=4)
+    test_config.pprint()
     captured = capsys.readouterr()
     assert captured.out == """{'x': 1, 'y': {'a': 2}}\n"""
 
