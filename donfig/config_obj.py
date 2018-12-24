@@ -371,6 +371,16 @@ class Config(object):
         self.config_lock = threading.Lock()
         self.refresh()
 
+    def __contains__(self, item):
+        try:
+            self[item]
+            return True
+        except (TypeError, IndexError, KeyError):
+            return False
+
+    def __getitem__(self, item):
+        return self.get(item)
+
     def pprint(self, **kwargs):
         return pprint.pprint(self.config, **kwargs)
 

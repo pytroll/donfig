@@ -163,10 +163,23 @@ def test_get():
     test_config.config = {'x': 1, 'y': {'a': 2}}
 
     assert test_config.get('x') == 1
+    assert test_config['x'] == 1
     assert test_config.get('y.a') == 2
+    assert test_config['y.a'] == 2
     assert test_config.get('y.b', 123) == 123
     with pytest.raises(KeyError):
         test_config.get('y.b')
+    with pytest.raises(KeyError):
+        test_config['y.b']
+
+
+def test_contains():
+    test_config = Config(config_name)
+    test_config.config = {'x': 1, 'y': {'a': 2}}
+
+    assert 'x' in test_config
+    assert 'y.a' in test_config
+    assert 'y.b' not in test_config
 
 
 def test_ensure_file(tmpdir):
@@ -372,8 +385,28 @@ def test_get_set_roundtrip(key):
         assert config.get('custom-key') == value
 
 
-def test_merge_None_to_dict():
+def test_merge_none_to_dict():
     assert merge({'a': None, 'c': 0}, {'a': {'b': 1}}) == {'a': {'b': 1}, 'c': 0}
+
+
+def test_pprint(capsys):
+    test_config = Config(config_name)
+    test_config.config = {'x': 1, 'y': {'a': 2}}
+    test_config.pprint()
+    captured = capsys.readouterr()
+    assert captured.out == """{'x': 1, 'y': {'a': 2}}\n"""
+
+
+def test_to_dict():
+    test_config = Config(config_name)
+    test_config.config = {'x': 1, 'y': {'a': 2}}
+    d = test_config.to_dict()
+    assert d == test_config.config
+    # make sure we copied
+    d['z'] = 3
+    d['y']['b'] = 4
+    assert d != test_config.config
+    assert d['y'] != test_config.config['y']
 
 
 if __name__ == '__main__':
