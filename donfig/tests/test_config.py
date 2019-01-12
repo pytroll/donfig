@@ -394,8 +394,8 @@ def test_pprint(capsys):
     test_config = Config(config_name)
     test_config.config = {'x': 1, 'y': {'a': 2}}
     test_config.pprint()
-    captured = capsys.readouterr()
-    assert captured.out == """{'x': 1, 'y': {'a': 2}}\n"""
+    cap_out = capsys.readouterr()[0]
+    assert cap_out == """{'x': 1, 'y': {'a': 2}}\n"""
 
 
 def test_to_dict():
