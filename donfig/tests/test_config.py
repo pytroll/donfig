@@ -29,13 +29,14 @@ import pytest
 from donfig.config_obj import (Config, update, merge, collect_yaml, collect_env, expand_environment_variables,
                                normalize_key, normalize_nested_keys)
 from donfig.utils import tmpfile
+from collections import OrderedDict
 
 config_name = 'test'
 
 
 def test_update():
     a = {'x': 1, 'y': {'a': 1}}
-    b = {'x': 2, 'z': 3, 'y': {'b': 2}}
+    b = {'x': 2, 'z': 3, 'y': OrderedDict({'b': 2})}
     update(b, a)
     assert b == {'x': 1, 'y': {'a': 1, 'b': 2}, 'z': 3}
 
@@ -393,8 +394,8 @@ def test_pprint(capsys):
     test_config = Config(config_name)
     test_config.config = {'x': 1, 'y': {'a': 2}}
     test_config.pprint()
-    captured = capsys.readouterr()
-    assert captured.out == """{'x': 1, 'y': {'a': 2}}\n"""
+    cap_out = capsys.readouterr()[0]
+    assert cap_out == """{'x': 1, 'y': {'a': 2}}\n"""
 
 
 def test_to_dict():
