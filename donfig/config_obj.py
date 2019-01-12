@@ -87,10 +87,10 @@ def update(old, new, priority='new'):
 
     """
     for k, v in new.items():
-        if k not in old and type(v) is dict:
+        if k not in old and isinstance(v, Mapping):
             old[k] = {}
 
-        if type(v) is dict:
+        if isinstance(v, Mapping):
             if old[k] is None:
                 old[k] = {}
             update(old[k], v, priority=priority)
