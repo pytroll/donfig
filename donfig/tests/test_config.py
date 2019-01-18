@@ -23,6 +23,8 @@
 # SOFTWARE.
 import yaml
 import os
+import stat
+import sys
 
 import pytest
 
@@ -30,6 +32,7 @@ from donfig.config_obj import (Config, update, merge, collect_yaml, collect_env,
                                normalize_key, normalize_nested_keys)
 from donfig.utils import tmpfile
 from collections import OrderedDict
+from contextlib import contextmanager
 
 config_name = 'test'
 
@@ -99,6 +102,45 @@ def test_collect_yaml_dir():
             yaml.dump(b, f)
 
         config = merge(*collect_yaml(paths=[dirname]))
+        assert config == expected
+
+
+@contextmanager
+def no_read_permissions(path):
+    perm_orig = stat.S_IMODE(os.stat(path).st_mode)
+    perm_new = perm_orig ^ stat.S_IREAD
+    try:
+        os.chmod(path, perm_new)
+        yield
+    finally:
+        os.chmod(path, perm_orig)
+
+
+@pytest.mark.skipif(sys.platform == 'win32',
+                    reason="Can't make writeonly file on windows")
+@pytest.mark.parametrize('kind', ['directory', 'file'])
+def test_collect_yaml_permission_errors(tmpdir, kind):
+    a = {'x': 1, 'y': 2}
+    b = {'y': 3, 'z': 4}
+
+    dir_path = str(tmpdir)
+    a_path = os.path.join(dir_path, 'a.yaml')
+    b_path = os.path.join(dir_path, 'b.yaml')
+
+    with open(a_path, mode='w') as f:
+        yaml.dump(a, f)
+    with open(b_path, mode='w') as f:
+        yaml.dump(b, f)
+
+    if kind == 'directory':
+        cant_read = dir_path
+        expected = {}
+    else:
+        cant_read = a_path
+        expected = b
+
+    with no_read_permissions(cant_read):
+        config = merge(*collect_yaml(paths=[dir_path]))
         assert config == expected
 
 
