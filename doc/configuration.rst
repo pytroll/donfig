@@ -154,8 +154,8 @@ resulting in configuration values like the following:
    }
 
 Donfig searches for all environment variables that start with ``MYPKG_``, then
-transforms keys by converting to lower case, changing double-underscores to
-nested structures, and changing single underscores to hyphens.
+transforms keys by converting to lower case and changing double-underscores to
+nested structures.
 
 Donfig tries to parse all values with `ast.literal_eval
 <https://docs.python.org/3/library/ast.html#ast.literal_eval>`_, letting users
