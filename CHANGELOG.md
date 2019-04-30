@@ -1,5 +1,27 @@
-## Version 0.3.0 (2018/12/24)
+## Version 0.4.0 (2019/04/30)
 
+### Issues Closed
+
+* [Issue 5](https://github.com/pytroll/donfig/issues/5) - donfig.config_obj.collect_yaml method is vulnerable
+
+In this release 1 issue was closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 6](https://github.com/pytroll/donfig/pull/6) - Avoid deprecation warning from newer versions of pyyaml
+* [PR 4](https://github.com/pytroll/donfig/pull/4) - Fix handling of non-readable config files
+* [PR 3](https://github.com/pytroll/donfig/pull/3) - Allow updates from arbitrary Mappings
+
+#### Features added
+
+* [PR 7](https://github.com/pytroll/donfig/pull/7) - Remove config key normalization
+
+In this release 4 pull requests were closed.
+
+
+## Version 0.3.0 (2018/12/24)
 
 ### Pull Requests Merged
 
