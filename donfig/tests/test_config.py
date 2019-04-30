@@ -28,13 +28,25 @@ import sys
 
 import pytest
 
-from donfig.config_obj import (Config, update, merge, collect_yaml, collect_env, expand_environment_variables,
-                               normalize_key, normalize_nested_keys)
+from donfig.config_obj import (Config, update, merge, collect_yaml,
+                               collect_env, expand_environment_variables,
+                               canonical_name)
 from donfig.utils import tmpfile
 from collections import OrderedDict
 from contextlib import contextmanager
 
 config_name = 'test'
+
+
+def test_canonical_name():
+    c = {'foo-bar': 1,
+         'fizz_buzz': 2}
+    assert canonical_name('foo-bar', c) == 'foo-bar'
+    assert canonical_name('foo_bar', c) == 'foo-bar'
+    assert canonical_name('fizz-buzz', c) == 'fizz_buzz'
+    assert canonical_name('fizz_buzz', c) == 'fizz_buzz'
+    assert canonical_name('new-key', c) == 'new-key'
+    assert canonical_name('new_key', c) == 'new_key'
 
 
 def test_update():
@@ -156,7 +168,7 @@ def test_env():
            }
 
     expected = {
-        'a-b': 123,
+        'a_b': 123,
         'c': True,
         'd': 'hello',
         'e': {'x': 123, 'y': 456},
@@ -164,7 +176,8 @@ def test_env():
         'g': '/not/parsable/as/literal',
     }
 
-    assert collect_env(config_name.upper(), env) == expected
+    res = collect_env(config_name.upper(), env)
+    assert res == expected
 
 
 def test_collect():
@@ -240,7 +253,7 @@ def test_ensure_file(tmpdir):
     config.ensure_file(source=source, destination=dest, comment=False)
 
     with open(destination) as f:
-        result = yaml.load(f)
+        result = yaml.safe_load(f)
     assert result == a
 
     # don't overwrite old config files
@@ -250,7 +263,7 @@ def test_ensure_file(tmpdir):
     config.ensure_file(source=source, destination=dest, comment=False)
 
     with open(destination) as f:
-        result = yaml.load(f)
+        result = yaml.safe_load(f)
     assert result == a
 
     os.remove(destination)
@@ -263,7 +276,7 @@ def test_ensure_file(tmpdir):
     assert '123' in text
 
     with open(destination) as f:
-        result = yaml.load(f)
+        result = yaml.safe_load(f)
     assert not result
 
 
@@ -388,35 +401,32 @@ def test_expand_environment_variables(inp, out):
         del os.environ['FOO']
 
 
-@pytest.mark.parametrize('inp,out', [
-    ('custom_key', 'custom-key'),
-    ('custom-key', 'custom-key'),
-    (1, 1),
-    (2.3, 2.3)
-])
-def test_normalize_key(inp, out):
-    assert normalize_key(inp) == out
-
-
-def test_normalize_nested_keys():
-    config = {'key_1': 1,
-              'key_2': {'nested_key_1': 2},
-              'key_3': 3
-              }
-    expected = {'key-1': 1,
-                'key-2': {'nested-key-1': 2},
-                'key-3': 3
-                }
-    assert normalize_nested_keys(config) == expected
-
-
-def test_env_var_normalization(monkeypatch):
+def test_env_var_canonical_name(monkeypatch):
     value = 3
     monkeypatch.setenv('TEST_A_B', str(value))
     config = Config(config_name)
 
     assert config.get('a_b') == value
     assert config.get('a-b') == value
+
+
+def test_get_set_canonical_name():
+    c = {'x-y': {'a_b': 123}}
+    config = Config(config_name)
+    config.update(c)
+
+    keys = ['x_y.a_b', 'x-y.a-b', 'x_y.a-b']
+    for k in keys:
+        assert config.get(k) == 123
+
+    with config.set({'x_y': {'a-b': 456}}):
+        for k in keys:
+            assert config.get(k) == 456
+
+    # No change to new keys in sub dicts
+    with config.set({'x_y': {'a-b': {'c_d': 1}, 'e-f': 2}}):
+        assert config.get('x_y.a-b') == {'c_d': 1}
+        assert config.get('x_y.e_f') == 2
 
 
 @pytest.mark.parametrize('key', ['custom_key', 'custom-key'])

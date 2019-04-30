@@ -34,14 +34,6 @@ try:
 except ImportError:
     yaml = None
 
-try:
-    import builtins
-    string_types = (str,)
-except ImportError:
-    # python 2
-    import __builtin__ as builtins  # noqa
-    string_types = (basestring,)  # noqa
-
 if sys.version_info[0] == 2:
     # python 2
     def makedirs(name, mode=0o777, exist_ok=True):
@@ -54,6 +46,29 @@ else:
     makedirs = os.makedirs
 
 no_default = '__no_default__'
+
+
+def canonical_name(k, config):
+    """Return the canonical name for a key.
+
+    Handles user choice of '-' or '_' conventions by standardizing on whichever
+    version was set first. If a key already exists in either hyphen or
+    underscore form, the existing version is the canonical name. If neither
+    version exists the original key is used as is.
+    """
+    try:
+        if k in config:
+            return k
+    except TypeError:
+        # config is not a mapping, return the same name as provided
+        return k
+
+    altk = k.replace('_', '-') if '_' in k else k.replace('-', '_')
+
+    if altk in config:
+        return altk
+
+    return k
 
 
 def update(old, new, priority='new'):
@@ -87,11 +102,10 @@ def update(old, new, priority='new'):
 
     """
     for k, v in new.items():
-        if k not in old and isinstance(v, Mapping):
-            old[k] = {}
+        k = canonical_name(k, old)
 
         if isinstance(v, Mapping):
-            if old[k] is None:
+            if k not in old or old[k] is None:
                 old[k] = {}
             update(old[k], v, priority=priority)
         else:
@@ -122,38 +136,6 @@ def merge(*dicts):
     for d in dicts:
         update(result, d)
     return result
-
-
-def normalize_key(key):
-    """ Replaces underscores with hyphens in string keys
-
-    Parameters
-    ----------
-    key : string, int, or float
-        Key to assign.
-    """
-    if isinstance(key, string_types):
-        key = key.replace('_', '-')
-    return key
-
-
-def normalize_nested_keys(config):
-    """ Replaces underscores with hyphens for keys for a nested Mapping
-
-    Examples
-    --------
-    >>> a = {'x': 1, 'y_1': {'a_2': 2}}
-    >>> normalize_nested_keys(a)
-    {'x': 1, 'y-1': {'a-2': 2}}
-    """
-    config_norm = {}
-    for key, value in config.items():
-        if isinstance(value, Mapping):
-            value = normalize_nested_keys(value)
-        key_norm = normalize_key(key)
-        config_norm[key_norm] = value
-
-    return config_norm
 
 
 def collect_yaml(paths):
@@ -187,7 +169,6 @@ def collect_yaml(paths):
         try:
             with open(path) as f:
                 data = yaml.safe_load(f.read()) or {}
-                data = normalize_nested_keys(data)
                 configs.append(data)
         except (OSError, IOError):
             # Ignore permission errors
@@ -205,7 +186,6 @@ def collect_env(prefix, env=None):
 
     -  Lower-cases the key text
     -  Treats ``__`` (double-underscore) as nested access
-    -  Replaces ``_`` (underscore) with a hyphen.
     -  Calls ``ast.literal_eval`` on the value
 
     """
@@ -214,8 +194,7 @@ def collect_env(prefix, env=None):
     d = {}
     for name, value in env.items():
         if name.startswith(prefix):
-            varname = name[5:].lower().replace('__', '.').replace('_', '-')
-            varname = normalize_key(varname)
+            varname = name[5:].lower().replace('__', '.')
             try:
                 d[varname] = ast.literal_eval(value)
             except (SyntaxError, ValueError):
@@ -296,7 +275,7 @@ class ConfigSet(object):
             Used internally to hold the path of old values
 
         """
-        key = normalize_key(keys[0])
+        key = canonical_name(keys[0], d)
         if len(keys) == 1:
             if old is not None:
                 path_key = tuple(path + [key])
@@ -339,7 +318,7 @@ def expand_environment_variables(config):
         return {k: expand_environment_variables(v) for k, v in config.items()}
     elif isinstance(config, str):
         return os.path.expandvars(config)
-    elif isinstance(config, (list, tuple, builtins.set)):
+    elif isinstance(config, (list, tuple, set)):
         return type(config)([expand_environment_variables(v) for v in config])
     else:
         return config
@@ -481,7 +460,7 @@ class Config(object):
         keys = key.split('.')
         result = self.config
         for k in keys:
-            k = normalize_key(k)
+            k = canonical_name(k, result)
             try:
                 result = result[k]
             except (TypeError, IndexError, KeyError):
@@ -550,8 +529,8 @@ class Config(object):
         This helps migrate older configuration versions over time
 
         """
-        old = list()
-        new = dict()
+        old = []
+        new = {}
         for o, n in aliases.items():
             value = self.get(o, None)
             if value is not None:
