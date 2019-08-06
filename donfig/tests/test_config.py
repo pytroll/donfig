@@ -303,6 +303,23 @@ def test_set():
     assert config.config['abc']['x'] == 123
 
 
+def test_set_kwargs():
+    config = Config(config_name)
+    with config.set(foo__bar=1, foo__baz=2):
+        assert config.config["foo"] == {"bar": 1, "baz": 2}
+    assert "foo" not in config.config
+
+    # Mix kwargs and dict, kwargs override
+    with config.set({"foo.bar": 1, "foo.baz": 2}, foo__buzz=3, foo__bar=4):
+        assert config.config["foo"] == {"bar": 4, "baz": 2, "buzz": 3}
+    assert "foo" not in config.config
+
+    # Mix kwargs and nested dict, kwargs override
+    with config.set({"foo": {"bar": 1, "baz": 2}}, foo__buzz=3, foo__bar=4):
+        assert config.config["foo"] == {"bar": 4, "baz": 2, "buzz": 3}
+    assert "foo" not in config.config
+
+
 def test_set_nested():
     config = Config(config_name)
     with config.set({'abc': {'x': 123}}):
@@ -363,7 +380,7 @@ def test_ensure_file_defaults_to_TEST_CONFIG_directory(tmpdir):
 
 def test_rename():
     config = Config(config_name)
-    aliases = {'foo-bar': 'foo.bar'}
+    aliases = {'foo_bar': 'foo.bar'}
     config.config = {'foo-bar': 123}
     config.rename(aliases)
     assert config.config == {'foo': {'bar': 123}}
