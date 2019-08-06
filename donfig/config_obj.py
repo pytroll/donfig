@@ -26,14 +26,20 @@ import os
 import sys
 import threading
 import pprint
-import contextlib
 from copy import deepcopy
 from collections import Mapping
+
+try:
+    from contextlib import nullcontext
+except ImportError:
+    # <python 3.7
+    from .utils import nullcontext
 
 try:
     import yaml
 except ImportError:
     yaml = None
+
 
 if sys.version_info[0] == 2:
     # python 2
@@ -203,7 +209,7 @@ def collect_env(prefix, env=None):
 
     result = {}
     # fake thread lock to use set functionality
-    lock = contextlib.nullcontext()
+    lock = nullcontext()
     ConfigSet(result, lock, d)
     return result
 
