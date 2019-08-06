@@ -21,6 +21,8 @@ matrix:
     os: linux
   - env: PYTHON_VERSION=3.6
     os: osx
+  - env: PYTHON_VERSION=3.6
+    os: windows
 install:
 - git clone --depth 1 git://github.com/astropy/ci-helpers.git
 - source ci-helpers/travis/setup_conda.sh
