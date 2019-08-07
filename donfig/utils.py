@@ -24,7 +24,12 @@
 import os
 import tempfile
 import shutil
-from contextlib import contextmanager, AbstractContextManager
+from contextlib import contextmanager
+
+try:
+    from contextlib import AbstractContextManager
+except ImportError:
+    AbstractContextManager = object
 
 try:
     from contextlib import suppress
