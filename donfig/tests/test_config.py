@@ -35,7 +35,8 @@ from donfig.utils import tmpfile
 from collections import OrderedDict
 from contextlib import contextmanager
 
-config_name = 'test'
+CONFIG_NAME = 'mytest'
+ENV_PREFIX = CONFIG_NAME.upper() + '_'
 
 
 def test_canonical_name():
@@ -157,13 +158,13 @@ def test_collect_yaml_permission_errors(tmpdir, kind):
 
 
 def test_env():
-    env = {'TEST_A_B': '123',
-           'TEST_C': 'True',
-           'TEST_D': 'hello',
-           'TEST_E__X': '123',
-           'TEST_E__Y': '456',
-           'TEST_F': '[1, 2, "3"]',
-           'TEST_G': '/not/parsable/as/literal',
+    env = {ENV_PREFIX + 'A_B': '123',
+           ENV_PREFIX + 'C': 'True',
+           ENV_PREFIX + 'D': 'hello',
+           ENV_PREFIX + 'E__X': '123',
+           ENV_PREFIX + 'E__Y': '456',
+           ENV_PREFIX + 'F': '[1, 2, "3"]',
+           ENV_PREFIX + 'G': '/not/parsable/as/literal',
            'FOO': 'not included',
            }
 
@@ -176,14 +177,14 @@ def test_env():
         'g': '/not/parsable/as/literal',
     }
 
-    res = collect_env(config_name.upper(), env)
+    res = collect_env(CONFIG_NAME.upper() + '_', env)
     assert res == expected
 
 
 def test_collect():
     a = {'x': 1, 'y': {'a': 1}}
     b = {'x': 2, 'z': 3, 'y': {'b': 2}}
-    env = {'TEST_W': 4}
+    env = {ENV_PREFIX + 'W': 4}
 
     expected = {
         'w': 4,
@@ -192,7 +193,7 @@ def test_collect():
         'z': 3,
     }
 
-    config = Config(config_name)
+    config = Config(CONFIG_NAME)
     with tmpfile(extension='yaml') as fn1:
         with tmpfile(extension='yaml') as fn2:
             with open(fn1, 'w') as f:
@@ -205,17 +206,17 @@ def test_collect():
 
 
 def test_collect_env_none():
-    os.environ['TEST_FOO'] = 'bar'
-    config = Config(config_name)
+    os.environ[ENV_PREFIX + 'FOO'] = 'bar'
+    config = Config(CONFIG_NAME)
     try:
         config = config.collect([])
         assert config == {'foo': 'bar'}
     finally:
-        del os.environ['TEST_FOO']
+        del os.environ[ENV_PREFIX + 'FOO']
 
 
 def test_get():
-    test_config = Config(config_name)
+    test_config = Config(CONFIG_NAME)
     test_config.config = {'x': 1, 'y': {'a': 2}}
 
     assert test_config.get('x') == 1
@@ -230,7 +231,7 @@ def test_get():
 
 
 def test_contains():
-    test_config = Config(config_name)
+    test_config = Config(CONFIG_NAME)
     test_config.config = {'x': 1, 'y': {'a': 2}}
 
     assert 'x' in test_config
@@ -249,7 +250,7 @@ def test_ensure_file(tmpdir):
     with open(source, 'w') as f:
         yaml.dump(a, f)
 
-    config = Config(config_name)
+    config = Config(CONFIG_NAME)
     config.ensure_file(source=source, destination=dest, comment=False)
 
     with open(destination) as f:
@@ -281,7 +282,7 @@ def test_ensure_file(tmpdir):
 
 
 def test_set():
-    config = Config(config_name)
+    config = Config(CONFIG_NAME)
     with config.set(abc=123):
         assert config.config['abc'] == 123
         with config.set(abc=456):
@@ -304,7 +305,7 @@ def test_set():
 
 
 def test_set_kwargs():
-    config = Config(config_name)
+    config = Config(CONFIG_NAME)
     with config.set(foo__bar=1, foo__baz=2):
         assert config.config["foo"] == {"bar": 1, "baz": 2}
     assert "foo" not in config.config
@@ -321,7 +322,7 @@ def test_set_kwargs():
 
 
 def test_set_nested():
-    config = Config(config_name)
+    config = Config(CONFIG_NAME)
     with config.set({'abc': {'x': 123}}):
         assert config.config['abc'] == {'x': 123}
         with config.set({'abc.y': 456}):
@@ -332,7 +333,7 @@ def test_set_nested():
 
 def test_set_hard_to_copyables():
     import threading
-    config = Config(config_name)
+    config = Config(CONFIG_NAME)
     with config.set(x=threading.Lock()):
         with config.set(y=1):
             pass
@@ -351,7 +352,7 @@ def test_ensure_file_directory(mkdir, tmpdir):
     if mkdir:
         os.mkdir(dest)
 
-    config = Config(config_name)
+    config = Config(CONFIG_NAME)
     config.ensure_file(source=source, destination=dest)
 
     assert os.path.isdir(dest)
@@ -379,7 +380,7 @@ def test_ensure_file_defaults_to_TEST_CONFIG_directory(tmpdir):
 
 
 def test_rename():
-    config = Config(config_name)
+    config = Config(CONFIG_NAME)
     aliases = {'foo_bar': 'foo.bar'}
     config.config = {'foo-bar': 123}
     config.rename(aliases)
@@ -388,15 +389,15 @@ def test_rename():
 
 def test_refresh():
     defaults = []
-    config = Config(config_name, defaults=defaults)
+    config = Config(CONFIG_NAME, defaults=defaults)
 
     config.update_defaults({'a': 1})
     assert config.config == {'a': 1}
 
-    config.refresh(paths=[], env={'TEST_B': '2'})
+    config.refresh(paths=[], env={ENV_PREFIX + 'B': '2'})
     assert config.config == {'a': 1, 'b': 2}
 
-    config.refresh(paths=[], env={'TEST_C': '3'})
+    config.refresh(paths=[], env={ENV_PREFIX + 'C': '3'})
     assert config.config == {'a': 1, 'c': 3}
 
 
@@ -420,8 +421,8 @@ def test_expand_environment_variables(inp, out):
 
 def test_env_var_canonical_name(monkeypatch):
     value = 3
-    monkeypatch.setenv('TEST_A_B', str(value))
-    config = Config(config_name)
+    monkeypatch.setenv(ENV_PREFIX + 'A_B', str(value))
+    config = Config(CONFIG_NAME)
 
     assert config.get('a_b') == value
     assert config.get('a-b') == value
@@ -429,7 +430,7 @@ def test_env_var_canonical_name(monkeypatch):
 
 def test_get_set_canonical_name():
     c = {'x-y': {'a_b': 123}}
-    config = Config(config_name)
+    config = Config(CONFIG_NAME)
     config.update(c)
 
     keys = ['x_y.a_b', 'x-y.a-b', 'x_y.a-b']
@@ -449,7 +450,7 @@ def test_get_set_canonical_name():
 @pytest.mark.parametrize('key', ['custom_key', 'custom-key'])
 def test_get_set_roundtrip(key):
     value = 123
-    config = Config(config_name)
+    config = Config(CONFIG_NAME)
     with config.set({key: value}):
         assert config.get('custom_key') == value
         assert config.get('custom-key') == value
@@ -460,7 +461,7 @@ def test_merge_none_to_dict():
 
 
 def test_pprint(capsys):
-    test_config = Config(config_name)
+    test_config = Config(CONFIG_NAME)
     test_config.config = {'x': 1, 'y': {'a': 2}}
     test_config.pprint()
     cap_out = capsys.readouterr()[0]
@@ -468,7 +469,7 @@ def test_pprint(capsys):
 
 
 def test_to_dict():
-    test_config = Config(config_name)
+    test_config = Config(CONFIG_NAME)
     test_config.config = {'x': 1, 'y': {'a': 2}}
     d = test_config.to_dict()
     assert d == test_config.config

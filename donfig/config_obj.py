@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2018 Donfig Developers
+# Copyright (c) 2018-2019 Donfig Developers
 # Copyright (c) 2014-2018, Anaconda, Inc. and contributors
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -199,9 +199,10 @@ def collect_env(prefix, env=None):
     if env is None:
         env = os.environ
     d = {}
+    prefix_len = len(prefix)
     for name, value in env.items():
         if name.startswith(prefix):
-            varname = name[5:].lower().replace('__', '.')
+            varname = name[prefix_len:].lower().replace('__', '.')
             try:
                 d[varname] = ast.literal_eval(value)
             except (SyntaxError, ValueError):
