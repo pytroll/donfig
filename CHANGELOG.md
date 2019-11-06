@@ -1,3 +1,18 @@
+## Version 0.5.0 (2019/11/06)
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 9](https://github.com/pytroll/donfig/pull/9) - Fix environment variable loading only working with 4 characters
+
+#### Features added
+
+* [PR 8](https://github.com/pytroll/donfig/pull/8) - Allow nested key set by keyword argument
+
+In this release 2 pull requests were closed.
+
+
 ## Version 0.4.0 (2019/04/30)
 
 ### Issues Closed
