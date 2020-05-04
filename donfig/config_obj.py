@@ -27,7 +27,7 @@ import sys
 import threading
 import pprint
 from copy import deepcopy
-from collections import Mapping
+from collections.abc import Mapping
 
 try:
     from contextlib import nullcontext
