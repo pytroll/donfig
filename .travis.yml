@@ -13,10 +13,6 @@ env:
   - CONDA_CHANNELS='conda-forge'
 matrix:
   include:
-  - env: PYTHON_VERSION=2.7
-    os: linux
-  - env: PYTHON_VERSION=2.7
-    os: osx
   - env: PYTHON_VERSION=3.6
     os: linux
   - env: PYTHON_VERSION=3.6
