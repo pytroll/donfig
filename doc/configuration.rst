@@ -105,8 +105,8 @@ You can specify configuration values in YAML files like the following:
      work-stealing: True
      allowed-failures: 5
 
-    admin:
-      log-format: '%(name)s - %(levelname)s - %(message)s'
+     admin:
+       log-format: '%(name)s - %(levelname)s - %(message)s'
 
 These files can live in any of the following locations:
 
@@ -206,6 +206,48 @@ This function can also be used as a context manager for consistent cleanup.
 Note that the ``set`` function treats underscores and hyphens identically.
 For example, ``mypkg.config.set({'scheduler.work-stealing': True})`` is
 equivalent to ``mypkg.config.set({'scheduler.work_stealing': True})``.
+
+Conversion Utility
+~~~~~~~~~~~~~~~~~~
+
+It is possible to configure Donfig inline with dot notation, with YAML or via environment variables. You can enter
+your own configuration items below to convert back and forth.
+
+.. warning::
+   This utility is designed to improve understanding of converting between different notations
+   and does not claim to be a perfect implementation. Please use for reference only.
+
+**YAML**
+
+.. raw:: html
+
+   <textarea id="configConvertUtilYAML" name="configConvertUtilYAML" rows="10" cols="50" class="configTextArea" wrap="off">
+   distributed:
+     logging:
+       distributed: info
+       bokeh: critical
+       tornado: critical
+   </textarea>
+
+**Environment variable**
+
+.. raw:: html
+
+   <textarea id="configConvertUtilEnv" name="configConvertUtilEnv" rows="10" cols="50" class="configTextArea" wrap="off">
+   export MYPKG_DISTRIBUTED__LOGGING__DISTRIBUTED="info"
+   export MYPKG_DISTRIBUTED__LOGGING__BOKEH="critical"
+   export MYPKG_DISTRIBUTED__LOGGING__TORNADO="critical"
+   </textarea>
+
+**Inline with dot notation**
+
+.. raw:: html
+
+   <textarea id="configConvertUtilCode" name="configConvertUtilCode" rows="10" cols="50" class="configTextArea" wrap="off">
+   >>> mypkg.config.set({"distributed.logging.distributed": "info"})
+   >>> mypkg.config.set({"distributed.logging.bokeh": "critical"})
+   >>> mypkg.config.set({"distributed.logging.tornado": "critical"})
+   </textarea>
 
 Updating Configuration
 ----------------------

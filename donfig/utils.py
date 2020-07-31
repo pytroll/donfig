@@ -66,11 +66,11 @@ class nullcontext(AbstractContextManager):
     """Context manager that does no additional processing.
 
     Used as a stand-in for a normal context manager, when a particular
-    block of code is only sometimes used with a normal context manager:
+    block of code is only sometimes used with a normal context manager::
 
-    cm = optional_cm if condition else nullcontext()
-    with cm:
-        # Perform operation, using optional_cm if condition is True
+        cm = optional_cm if condition else nullcontext()
+        with cm:
+            # Perform operation, using optional_cm if condition is True
 
     """
 
