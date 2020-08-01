@@ -1,4 +1,9 @@
 /**
+ * Copied from the work by Jacob Tomlinson (@jacobtomlinson) in the dask package.
+ * See https://github.com/dask/dask/pull/6472 for more information.
+ */
+
+/**
  * On window load check for the "configConvertUtilYAML" and "configConvertUtilEnv" text areas.
  * If they exist add event handlers to convert YAML to environment variables and vice-versa
  * when the user types in either field.
