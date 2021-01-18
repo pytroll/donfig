@@ -31,10 +31,17 @@ jobs:
         run: |
           pip install --no-deps -e .
 
-      - name: Run unit tests
+      - name: Run unit tests on non-Windows
         shell: bash -l {0}
         run: |
           pytest --cov=donfig donfig --cov-report=xml
+        if: runner.os != 'Windows'
+
+      - name: Run unit tests on Windows
+        shell: powershell
+        run: |
+          pytest --cov=donfig donfig --cov-report=xml
+        if: runner.os == 'Windows'
 
       - name: Upload unittest coverage to Codecov
         uses: codecov/codecov-action@v1
