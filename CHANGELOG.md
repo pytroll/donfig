@@ -1,3 +1,15 @@
+## Version 0.6.0 (2021/01/17)
+
+### Pull Requests Merged
+
+#### Features added
+
+* [PR 11](https://github.com/pytroll/donfig/pull/11) - Add dask config conversion javascript utility
+* Drop support for Python <3.6
+
+In this release 1 pull request was closed.
+
+
 ## Version 0.5.0 (2019/11/06)
 
 ### Pull Requests Merged

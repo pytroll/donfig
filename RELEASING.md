@@ -5,9 +5,9 @@
 3. run the unittests
 4. run `loghub` and update the `CHANGELOG.md` file:
 
-```
-loghub pytroll/donfig -u <username> -st v0.8.0 -plg bug "Bugs fixed" -plg enhancement "Features added" -plg documentation "Documentation changes" -plg backwards-incompatibility "Backwards incompatible changes"
-```
+   ```
+   loghub pytroll/donfig --token $LOGHUB_GITHUB_TOKEN -st v<previous version> -plg bug "Bugs fixed" -plg enhancement "Features added" -plg documentation "Documentation changes" -plg backwards-incompatibility "Backward incompatible changes" -plg refactor "Refactoring"
+   ```
 
 Don't forget to commit!
 
