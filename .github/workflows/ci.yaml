@@ -1,0 +1,51 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os: ["windows-latest", "ubuntu-latest", "macos-latest"]
+        python-version: ["3.9"]
+
+    env:
+      PYTHON_VERSION: ${{ matrix.python-version }}
+      OS: ${{ matrix.os }}
+      ACTIONS_ALLOW_UNSECURE_COMMANDS: true
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v2
+
+      - name: Setup Conda Environment
+        uses: mamba-org/provision-with-micromamba@main
+        with:
+#          python-version: ${{ matrix.python-version }}
+          environment-file: continuous_integration/environment.yaml
+
+      - name: Install Donfig
+        shell: bash -l {0}
+        run: |
+          pip install --no-deps -e .
+
+      - name: Run unit tests on non-Windows
+        shell: bash -l {0}
+        run: |
+          pytest --cov=donfig donfig --cov-report=xml
+        if: runner.os != 'Windows'
+
+      - name: Run unit tests on Windows
+        shell: powershell
+        run: |
+          pytest --cov=donfig donfig --cov-report=xml
+        if: runner.os == 'Windows'
+
+      - name: Upload unittest coverage to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          flags: unittests
+          file: ./coverage.xml
+          env_vars: OS,PYTHON_VERSION,UNSTABLE

@@ -20,4 +20,6 @@ git tag -a v0.22.45 -m "Version 0.22.45"
 See [semver.org](http://semver.org/) on how to write a version number.
 
 6. push changes to github `git push --follow-tags`
-7. Verify travis tests passed and deployed sdist and wheel to PyPI
+7. Verify github action tests passed
+8. Create github release
+9. Verify deploy github workflow passes and package deployed to PyPI

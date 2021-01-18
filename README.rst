@@ -1,14 +1,14 @@
 Donfig
 ======
 
-.. image:: https://travis-ci.org/pytroll/donfig.svg?branch=master
-    :target: https://travis-ci.org/pytroll/donfig
+.. image:: https://github.com/pytroll/donfig/workflows/CI/badge.svg?branch=master
+    :target: https://github.com/pytroll/donfig/actions?query=workflow%3A%22CI%22
 
-.. image:: https://ci.appveyor.com/api/projects/status/mx2xytb89voslo6h/branch/master?svg=true
-    :target: https://ci.appveyor.com/project/pytroll/donfig/branch/master
+.. image:: https://codecov.io/gh/pytroll/donfig/branch/master/graph/badge.svg?token=xmvNtxzdoB
+   :target: https://codecov.io/gh/pytroll/donfig
 
-.. image:: https://coveralls.io/repos/github/pytroll/donfig/badge.svg?branch=master
-    :target: https://coveralls.io/github/pytroll/donfig?branch=master
+.. image:: https://anaconda.org/conda-forge/donfig/badges/version.svg
+   :target: https://anaconda.org/conda-forge/donfig/
 
 Donfig is a python library meant to make configuration easier for other
 python packages. Donfig can be configured programmatically, by
