@@ -4,4 +4,5 @@ channels:
 dependencies:
   - pyyaml
   - pytest
+  - pytest-cov
   - python=3.9
