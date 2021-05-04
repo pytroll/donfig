@@ -1,10 +1,10 @@
 Donfig
 ======
 
-.. image:: https://github.com/pytroll/donfig/workflows/CI/badge.svg?branch=master
+.. image:: https://github.com/pytroll/donfig/workflows/CI/badge.svg?branch=main
     :target: https://github.com/pytroll/donfig/actions?query=workflow%3A%22CI%22
 
-.. image:: https://codecov.io/gh/pytroll/donfig/branch/master/graph/badge.svg?token=xmvNtxzdoB
+.. image:: https://codecov.io/gh/pytroll/donfig/branch/main/graph/badge.svg?token=xmvNtxzdoB
    :target: https://codecov.io/gh/pytroll/donfig
 
 .. image:: https://anaconda.org/conda-forge/donfig/badges/version.svg
