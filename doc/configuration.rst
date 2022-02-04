@@ -45,7 +45,7 @@ search for YAML files can be customized as well as default options:
 
 .. code-block:: python
 
-    config = Config('mypkg', defaults={'key1': 'default_val'}, paths=['/usr/local/etc/'])
+    config = Config('mypkg', defaults=[{'key1': 'default_val'}], paths=['/usr/local/etc/'])
 
 Access Configuration
 --------------------
