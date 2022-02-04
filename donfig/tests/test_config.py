@@ -24,6 +24,7 @@
 import yaml
 import os
 import stat
+import subprocess
 import sys
 
 import pytest
@@ -480,7 +481,16 @@ def test_to_dict():
     assert d['y'] != test_config.config['y']
 
 
-if __name__ == '__main__':
-    import sys
-    import pytest
-    sys.exit(pytest.main(sys.argv))
+def test_path_includes_site_prefix():
+
+    command = (
+        "import site, os; "
+        'prefix = os.path.join("include", "this", "path"); '
+        "site.PREFIXES.append(prefix); "
+        "from donfig import Config; "
+        f"config = Config('{CONFIG_NAME}'); "
+        "print(config.paths); "
+        f'assert os.path.join(prefix, "etc", "{CONFIG_NAME}") in config.paths'
+    )
+
+    subprocess.check_call([sys.executable, "-c", command])
