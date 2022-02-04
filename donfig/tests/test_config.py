@@ -498,11 +498,12 @@ def test_path_includes_site_prefix():
 
 
 def test__get_paths(monkeypatch):
-    # These environment variables, if present, would interfere with these tests
+    # These settings, if present, would interfere with these tests
     # We temporarily remove them to avoid interference from the
     # machine where tests are being run.
     monkeypatch.delenv("MYPKG_CONFIG", raising=False)
     monkeypatch.delenv("MYPKG_ROOT_CONFIG", raising=False)
+    monkeypatch.setattr(site, "PREFIXES", [])
 
     expected = [
         "/etc/mypkg",
