@@ -112,7 +112,9 @@ These files can live in any of the following locations:
 
 1.  The ``~/.config/mypkg`` directory in the user's home directory
 2.  The ``{sys.prefix}/etc/mypkg`` directory local to Python
-3.  The root directory (specified by the ``MYPKG_ROOT_CONFIG`` environment
+3.  The ``{prefix}/etc/mypkg`` directories with ``{prefix}`` in `site.PREFIXES
+    <https://docs.python.org/3/library/site.html#site.PREFIXES>`_
+4.  The root directory (specified by the ``MYPKG_ROOT_CONFIG`` environment
     variable or ``/etc/mypkg/`` by default)
 
 Donfig searches for *all* YAML files within each of these directories and merges

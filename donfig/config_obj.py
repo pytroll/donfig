@@ -23,6 +23,7 @@
 # SOFTWARE.
 import ast
 import os
+import site
 import sys
 import threading
 import pprint
@@ -341,6 +342,7 @@ class Config(object):
             paths = [
                 os.getenv(root_env_var, '/etc/{}'.format(name)),
                 os.path.join(sys.prefix, 'etc', name),
+                *[os.path.join(prefix, "etc", name) for prefix in site.PREFIXES],
                 os.path.join(os.path.expanduser('~'), '.config', name),
                 os.path.join(os.path.expanduser('~'), '.{}'.format(name))
             ]
@@ -356,6 +358,9 @@ class Config(object):
             paths.append(main_path)
         else:
             main_path = os.path.join(os.path.expanduser('~'), '.config', name)
+
+        # Remove duplicate paths while preserving ordering
+        paths = list(reversed(list(dict.fromkeys(reversed(paths)))))
 
         self.name = name
         self.env_prefix = env_prefix
