@@ -344,7 +344,6 @@ class Config(object):
                 os.path.join(sys.prefix, 'etc', name),
                 *[os.path.join(prefix, "etc", name) for prefix in site.PREFIXES],
                 os.path.join(os.path.expanduser('~'), '.config', name),
-                os.path.join(os.path.expanduser('~'), '.{}'.format(name))
             ]
 
         if env_prefix is None:
