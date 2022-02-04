@@ -21,13 +21,14 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-import yaml
 import os
+import site
 import stat
 import subprocess
 import sys
 
 import pytest
+import yaml
 
 from donfig.config_obj import (Config, update, merge, collect_yaml,
                                collect_env, expand_environment_variables,
@@ -494,3 +495,42 @@ def test_path_includes_site_prefix():
     )
 
     subprocess.check_call([sys.executable, "-c", command])
+
+
+def test__get_paths(monkeypatch):
+    # These environment variables, if present, would interfere with these tests
+    # We temporarily remove them to avoid interference from the
+    # machine where tests are being run.
+    monkeypatch.delenv("MYPKG_CONFIG", raising=False)
+    monkeypatch.delenv("MYPKG_ROOT_CONFIG", raising=False)
+
+    expected = [
+        "/etc/mypkg",
+        os.path.join(sys.prefix, "etc", "mypkg"),
+        os.path.join(os.path.expanduser("~"), ".config", "mypkg"),
+    ]
+    config = Config("mypkg")
+    assert config.paths == expected
+    assert len(config.paths) == len(set(config.paths))  # No duplicate paths
+
+    with monkeypatch.context() as m:
+        m.setenv("MYPKG_CONFIG", "foo-bar")
+        config = Config("mypkg")
+        paths = config.paths
+        assert paths == expected + ["foo-bar"]
+        assert len(paths) == len(set(paths))
+
+    with monkeypatch.context() as m:
+        m.setenv("MYPKG_ROOT_CONFIG", "foo-bar")
+        config = Config("mypkg")
+        paths = config.paths
+        assert paths == ["foo-bar"] + expected[1:]
+        assert len(paths) == len(set(paths))
+
+    with monkeypatch.context() as m:
+        prefix = os.path.join("include", "this", "path")
+        m.setattr(site, "PREFIXES", site.PREFIXES + [prefix])
+        config = Config("mypkg")
+        paths = config.paths
+        assert os.path.join(prefix, "etc", "mypkg") in paths
+        assert len(paths) == len(set(paths))
