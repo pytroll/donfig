@@ -25,10 +25,11 @@ import ast
 import os
 import site
 import sys
-import threading
 import pprint
 from copy import deepcopy
 from collections.abc import Mapping
+
+from ._lock import SerializableLock
 
 try:
     from contextlib import nullcontext
@@ -368,7 +369,7 @@ class Config(object):
         self.paths = paths
         self.defaults = defaults or []
         self.config = {}
-        self.config_lock = threading.Lock()
+        self.config_lock = SerializableLock()
         self.refresh()
 
     def __contains__(self, item):
