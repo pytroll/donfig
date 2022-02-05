@@ -11,13 +11,13 @@ repos:
         args:
           - --py37-plus
   -   repo: https://github.com/psf/black
-      rev: 21.9b0
+      rev: 22.1.0
       hooks:
         - id: black
           language_version: python3
-          exclude: versioneer.py
           args:
             - --target-version=py37
+            - --exclude="(versioneer\.py|donfig\/version\.py)"
   -   repo: https://gitlab.com/pycqa/flake8
       rev: 3.9.2
       hooks:

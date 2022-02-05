@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2018 Donfig Developers
 # Copyright (c) 2014-2018, Anaconda, Inc. and contributors
@@ -26,74 +25,75 @@ import site
 import stat
 import subprocess
 import sys
+from collections import OrderedDict
+from contextlib import contextmanager
 
+import cloudpickle
 import pytest
 import yaml
 
-from donfig.config_obj import (Config, update, merge, collect_yaml,
-                               collect_env, expand_environment_variables,
-                               canonical_name)
+from donfig.config_obj import (
+    Config,
+    canonical_name,
+    collect_env,
+    collect_yaml,
+    expand_environment_variables,
+    merge,
+    update,
+)
 from donfig.utils import tmpfile
-from collections import OrderedDict
-from contextlib import contextmanager
-import cloudpickle
 
-CONFIG_NAME = 'mytest'
-ENV_PREFIX = CONFIG_NAME.upper() + '_'
+CONFIG_NAME = "mytest"
+ENV_PREFIX = CONFIG_NAME.upper() + "_"
 
 
 def test_canonical_name():
-    c = {'foo-bar': 1,
-         'fizz_buzz': 2}
-    assert canonical_name('foo-bar', c) == 'foo-bar'
-    assert canonical_name('foo_bar', c) == 'foo-bar'
-    assert canonical_name('fizz-buzz', c) == 'fizz_buzz'
-    assert canonical_name('fizz_buzz', c) == 'fizz_buzz'
-    assert canonical_name('new-key', c) == 'new-key'
-    assert canonical_name('new_key', c) == 'new_key'
+    c = {"foo-bar": 1, "fizz_buzz": 2}
+    assert canonical_name("foo-bar", c) == "foo-bar"
+    assert canonical_name("foo_bar", c) == "foo-bar"
+    assert canonical_name("fizz-buzz", c) == "fizz_buzz"
+    assert canonical_name("fizz_buzz", c) == "fizz_buzz"
+    assert canonical_name("new-key", c) == "new-key"
+    assert canonical_name("new_key", c) == "new_key"
 
 
 def test_update():
-    a = {'x': 1, 'y': {'a': 1}}
-    b = {'x': 2, 'z': 3, 'y': OrderedDict({'b': 2})}
+    a = {"x": 1, "y": {"a": 1}}
+    b = {"x": 2, "z": 3, "y": OrderedDict({"b": 2})}
     update(b, a)
-    assert b == {'x': 1, 'y': {'a': 1, 'b': 2}, 'z': 3}
+    assert b == {"x": 1, "y": {"a": 1, "b": 2}, "z": 3}
 
-    a = {'x': 1, 'y': {'a': 1}}
-    b = {'x': 2, 'z': 3, 'y': {'a': 3, 'b': 2}}
-    update(b, a, priority='old')
-    assert b == {'x': 2, 'y': {'a': 3, 'b': 2}, 'z': 3}
+    a = {"x": 1, "y": {"a": 1}}
+    b = {"x": 2, "z": 3, "y": {"a": 3, "b": 2}}
+    update(b, a, priority="old")
+    assert b == {"x": 2, "y": {"a": 3, "b": 2}, "z": 3}
 
 
 def test_merge():
-    a = {'x': 1, 'y': {'a': 1}}
-    b = {'x': 2, 'z': 3, 'y': {'b': 2}}
+    a = {"x": 1, "y": {"a": 1}}
+    b = {"x": 2, "z": 3, "y": {"b": 2}}
 
-    expected = {
-        'x': 2,
-        'y': {'a': 1, 'b': 2},
-        'z': 3
-    }
+    expected = {"x": 2, "y": {"a": 1, "b": 2}, "z": 3}
 
     c = merge(a, b)
     assert c == expected
 
 
 def test_collect_yaml_paths():
-    a = {'x': 1, 'y': {'a': 1}}
-    b = {'x': 2, 'z': 3, 'y': {'b': 2}}
+    a = {"x": 1, "y": {"a": 1}}
+    b = {"x": 2, "z": 3, "y": {"b": 2}}
 
     expected = {
-        'x': 2,
-        'y': {'a': 1, 'b': 2},
-        'z': 3,
+        "x": 2,
+        "y": {"a": 1, "b": 2},
+        "z": 3,
     }
 
-    with tmpfile(extension='yaml') as fn1:
-        with tmpfile(extension='yaml') as fn2:
-            with open(fn1, 'w') as f:
+    with tmpfile(extension="yaml") as fn1:
+        with tmpfile(extension="yaml") as fn2:
+            with open(fn1, "w") as f:
                 yaml.dump(a, f)
-            with open(fn2, 'w') as f:
+            with open(fn2, "w") as f:
                 yaml.dump(b, f)
 
             config = merge(*collect_yaml(paths=[fn1, fn2]))
@@ -101,20 +101,20 @@ def test_collect_yaml_paths():
 
 
 def test_collect_yaml_dir():
-    a = {'x': 1, 'y': {'a': 1}}
-    b = {'x': 2, 'z': 3, 'y': {'b': 2}}
+    a = {"x": 1, "y": {"a": 1}}
+    b = {"x": 2, "z": 3, "y": {"b": 2}}
 
     expected = {
-        'x': 2,
-        'y': {'a': 1, 'b': 2},
-        'z': 3,
+        "x": 2,
+        "y": {"a": 1, "b": 2},
+        "z": 3,
     }
 
     with tmpfile() as dirname:
         os.mkdir(dirname)
-        with open(os.path.join(dirname, 'a.yaml'), mode='w') as f:
+        with open(os.path.join(dirname, "a.yaml"), mode="w") as f:
             yaml.dump(a, f)
-        with open(os.path.join(dirname, 'b.yaml'), mode='w') as f:
+        with open(os.path.join(dirname, "b.yaml"), mode="w") as f:
             yaml.dump(b, f)
 
         config = merge(*collect_yaml(paths=[dirname]))
@@ -132,23 +132,24 @@ def no_read_permissions(path):
         os.chmod(path, perm_orig)
 
 
-@pytest.mark.skipif(sys.platform == 'win32',
-                    reason="Can't make writeonly file on windows")
-@pytest.mark.parametrize('kind', ['directory', 'file'])
+@pytest.mark.skipif(
+    sys.platform == "win32", reason="Can't make writeonly file on windows"
+)
+@pytest.mark.parametrize("kind", ["directory", "file"])
 def test_collect_yaml_permission_errors(tmpdir, kind):
-    a = {'x': 1, 'y': 2}
-    b = {'y': 3, 'z': 4}
+    a = {"x": 1, "y": 2}
+    b = {"y": 3, "z": 4}
 
     dir_path = str(tmpdir)
-    a_path = os.path.join(dir_path, 'a.yaml')
-    b_path = os.path.join(dir_path, 'b.yaml')
+    a_path = os.path.join(dir_path, "a.yaml")
+    b_path = os.path.join(dir_path, "b.yaml")
 
-    with open(a_path, mode='w') as f:
+    with open(a_path, mode="w") as f:
         yaml.dump(a, f)
-    with open(b_path, mode='w') as f:
+    with open(b_path, mode="w") as f:
         yaml.dump(b, f)
 
-    if kind == 'directory':
+    if kind == "directory":
         cant_read = dir_path
         expected = {}
     else:
@@ -161,47 +162,48 @@ def test_collect_yaml_permission_errors(tmpdir, kind):
 
 
 def test_env():
-    env = {ENV_PREFIX + 'A_B': '123',
-           ENV_PREFIX + 'C': 'True',
-           ENV_PREFIX + 'D': 'hello',
-           ENV_PREFIX + 'E__X': '123',
-           ENV_PREFIX + 'E__Y': '456',
-           ENV_PREFIX + 'F': '[1, 2, "3"]',
-           ENV_PREFIX + 'G': '/not/parsable/as/literal',
-           'FOO': 'not included',
-           }
-
-    expected = {
-        'a_b': 123,
-        'c': True,
-        'd': 'hello',
-        'e': {'x': 123, 'y': 456},
-        'f': [1, 2, "3"],
-        'g': '/not/parsable/as/literal',
+    env = {
+        ENV_PREFIX + "A_B": "123",
+        ENV_PREFIX + "C": "True",
+        ENV_PREFIX + "D": "hello",
+        ENV_PREFIX + "E__X": "123",
+        ENV_PREFIX + "E__Y": "456",
+        ENV_PREFIX + "F": '[1, 2, "3"]',
+        ENV_PREFIX + "G": "/not/parsable/as/literal",
+        "FOO": "not included",
     }
 
-    res = collect_env(CONFIG_NAME.upper() + '_', env)
+    expected = {
+        "a_b": 123,
+        "c": True,
+        "d": "hello",
+        "e": {"x": 123, "y": 456},
+        "f": [1, 2, "3"],
+        "g": "/not/parsable/as/literal",
+    }
+
+    res = collect_env(CONFIG_NAME.upper() + "_", env)
     assert res == expected
 
 
 def test_collect():
-    a = {'x': 1, 'y': {'a': 1}}
-    b = {'x': 2, 'z': 3, 'y': {'b': 2}}
-    env = {ENV_PREFIX + 'W': 4}
+    a = {"x": 1, "y": {"a": 1}}
+    b = {"x": 2, "z": 3, "y": {"b": 2}}
+    env = {ENV_PREFIX + "W": 4}
 
     expected = {
-        'w': 4,
-        'x': 2,
-        'y': {'a': 1, 'b': 2},
-        'z': 3,
+        "w": 4,
+        "x": 2,
+        "y": {"a": 1, "b": 2},
+        "z": 3,
     }
 
     config = Config(CONFIG_NAME)
-    with tmpfile(extension='yaml') as fn1:
-        with tmpfile(extension='yaml') as fn2:
-            with open(fn1, 'w') as f:
+    with tmpfile(extension="yaml") as fn1:
+        with tmpfile(extension="yaml") as fn2:
+            with open(fn1, "w") as f:
                 yaml.dump(a, f)
-            with open(fn2, 'w') as f:
+            with open(fn2, "w") as f:
                 yaml.dump(b, f)
 
             config = config.collect([fn1, fn2], env=env)
@@ -209,48 +211,48 @@ def test_collect():
 
 
 def test_collect_env_none():
-    os.environ[ENV_PREFIX + 'FOO'] = 'bar'
+    os.environ[ENV_PREFIX + "FOO"] = "bar"
     config = Config(CONFIG_NAME)
     try:
         config = config.collect([])
-        assert config == {'foo': 'bar'}
+        assert config == {"foo": "bar"}
     finally:
-        del os.environ[ENV_PREFIX + 'FOO']
+        del os.environ[ENV_PREFIX + "FOO"]
 
 
 def test_get():
     test_config = Config(CONFIG_NAME)
-    test_config.config = {'x': 1, 'y': {'a': 2}}
+    test_config.config = {"x": 1, "y": {"a": 2}}
 
-    assert test_config.get('x') == 1
-    assert test_config['x'] == 1
-    assert test_config.get('y.a') == 2
-    assert test_config['y.a'] == 2
-    assert test_config.get('y.b', 123) == 123
+    assert test_config.get("x") == 1
+    assert test_config["x"] == 1
+    assert test_config.get("y.a") == 2
+    assert test_config["y.a"] == 2
+    assert test_config.get("y.b", 123) == 123
     with pytest.raises(KeyError):
-        test_config.get('y.b')
+        test_config.get("y.b")
     with pytest.raises(KeyError):
-        test_config['y.b']
+        test_config["y.b"]
 
 
 def test_contains():
     test_config = Config(CONFIG_NAME)
-    test_config.config = {'x': 1, 'y': {'a': 2}}
+    test_config.config = {"x": 1, "y": {"a": 2}}
 
-    assert 'x' in test_config
-    assert 'y.a' in test_config
-    assert 'y.b' not in test_config
+    assert "x" in test_config
+    assert "y.a" in test_config
+    assert "y.b" not in test_config
 
 
 def test_ensure_file(tmpdir):
-    a = {'x': 1, 'y': {'a': 1}}
-    b = {'x': 123}
+    a = {"x": 1, "y": {"a": 1}}
+    b = {"x": 123}
 
-    source = os.path.join(str(tmpdir), 'source.yaml')
-    dest = os.path.join(str(tmpdir), 'dest')
-    destination = os.path.join(dest, 'source.yaml')
+    source = os.path.join(str(tmpdir), "source.yaml")
+    dest = os.path.join(str(tmpdir), "dest")
+    destination = os.path.join(dest, "source.yaml")
 
-    with open(source, 'w') as f:
+    with open(source, "w") as f:
         yaml.dump(a, f)
 
     config = Config(CONFIG_NAME)
@@ -261,7 +263,7 @@ def test_ensure_file(tmpdir):
     assert result == a
 
     # don't overwrite old config files
-    with open(source, 'w') as f:
+    with open(source, "w") as f:
         yaml.dump(b, f)
 
     config.ensure_file(source=source, destination=dest, comment=False)
@@ -277,7 +279,7 @@ def test_ensure_file(tmpdir):
 
     with open(destination) as f:
         text = f.read()
-    assert '123' in text
+    assert "123" in text
 
     with open(destination) as f:
         result = yaml.safe_load(f)
@@ -287,24 +289,24 @@ def test_ensure_file(tmpdir):
 def test_set():
     config = Config(CONFIG_NAME)
     with config.set(abc=123):
-        assert config.config['abc'] == 123
+        assert config.config["abc"] == 123
         with config.set(abc=456):
-            assert config.config['abc'] == 456
-        assert config.config['abc'] == 123
+            assert config.config["abc"] == 456
+        assert config.config["abc"] == 123
 
-    assert 'abc' not in config.config
+    assert "abc" not in config.config
 
-    with config.set({'abc': 123}):
-        assert config.config['abc'] == 123
-    assert 'abc' not in config.config
+    with config.set({"abc": 123}):
+        assert config.config["abc"] == 123
+    assert "abc" not in config.config
 
-    with config.set({'abc.x': 1, 'abc.y': 2, 'abc.z.a': 3}):
-        assert config.config['abc'] == {'x': 1, 'y': 2, 'z': {'a': 3}}
-    assert 'abc' not in config.config
+    with config.set({"abc.x": 1, "abc.y": 2, "abc.z.a": 3}):
+        assert config.config["abc"] == {"x": 1, "y": 2, "z": {"a": 3}}
+    assert "abc" not in config.config
 
     config.config = {}
-    config.set({'abc.x': 123})
-    assert config.config['abc']['x'] == 123
+    config.set({"abc.x": 123})
+    assert config.config["abc"]["x"] == 123
 
 
 def test_set_kwargs():
@@ -326,30 +328,31 @@ def test_set_kwargs():
 
 def test_set_nested():
     config = Config(CONFIG_NAME)
-    with config.set({'abc': {'x': 123}}):
-        assert config.config['abc'] == {'x': 123}
-        with config.set({'abc.y': 456}):
-            assert config.config['abc'] == {'x': 123, 'y': 456}
-        assert config.config['abc'] == {'x': 123}
-    assert 'abc' not in config.config
+    with config.set({"abc": {"x": 123}}):
+        assert config.config["abc"] == {"x": 123}
+        with config.set({"abc.y": 456}):
+            assert config.config["abc"] == {"x": 123, "y": 456}
+        assert config.config["abc"] == {"x": 123}
+    assert "abc" not in config.config
 
 
 def test_set_hard_to_copyables():
     import threading
+
     config = Config(CONFIG_NAME)
     with config.set(x=threading.Lock()):
         with config.set(y=1):
             pass
 
 
-@pytest.mark.parametrize('mkdir', [True, False])
+@pytest.mark.parametrize("mkdir", [True, False])
 def test_ensure_file_directory(mkdir, tmpdir):
-    a = {'x': 1, 'y': {'a': 1}}
+    a = {"x": 1, "y": {"a": 1}}
 
-    source = os.path.join(str(tmpdir), 'source.yaml')
-    dest = os.path.join(str(tmpdir), 'dest')
+    source = os.path.join(str(tmpdir), "source.yaml")
+    dest = os.path.join(str(tmpdir), "dest")
 
-    with open(source, 'w') as f:
+    with open(source, "w") as f:
         yaml.dump(a, f)
 
     if mkdir:
@@ -359,17 +362,17 @@ def test_ensure_file_directory(mkdir, tmpdir):
     config.ensure_file(source=source, destination=dest)
 
     assert os.path.isdir(dest)
-    assert os.path.exists(os.path.join(dest, 'source.yaml'))
+    assert os.path.exists(os.path.join(dest, "source.yaml"))
 
 
 def test_ensure_file_defaults_to_TEST_CONFIG_directory(tmpdir):
-    a = {'x': 1, 'y': {'a': 1}}
-    source = os.path.join(str(tmpdir), 'source.yaml')
-    with open(source, 'w') as f:
+    a = {"x": 1, "y": {"a": 1}}
+    source = os.path.join(str(tmpdir), "source.yaml")
+    with open(source, "w") as f:
         yaml.dump(a, f)
 
-    config = Config('test')
-    destination = os.path.join(str(tmpdir), 'test')
+    config = Config("test")
+    destination = os.path.join(str(tmpdir), "test")
     PATH = config.main_path
     try:
         config.main_path = destination
@@ -384,88 +387,91 @@ def test_ensure_file_defaults_to_TEST_CONFIG_directory(tmpdir):
 
 def test_rename():
     config = Config(CONFIG_NAME)
-    aliases = {'foo_bar': 'foo.bar'}
-    config.config = {'foo-bar': 123}
+    aliases = {"foo_bar": "foo.bar"}
+    config.config = {"foo-bar": 123}
     config.rename(aliases)
-    assert config.config == {'foo': {'bar': 123}}
+    assert config.config == {"foo": {"bar": 123}}
 
 
 def test_refresh():
     defaults = []
     config = Config(CONFIG_NAME, defaults=defaults)
 
-    config.update_defaults({'a': 1})
-    assert config.config == {'a': 1}
+    config.update_defaults({"a": 1})
+    assert config.config == {"a": 1}
 
-    config.refresh(paths=[], env={ENV_PREFIX + 'B': '2'})
-    assert config.config == {'a': 1, 'b': 2}
+    config.refresh(paths=[], env={ENV_PREFIX + "B": "2"})
+    assert config.config == {"a": 1, "b": 2}
 
-    config.refresh(paths=[], env={ENV_PREFIX + 'C': '3'})
-    assert config.config == {'a': 1, 'c': 3}
+    config.refresh(paths=[], env={ENV_PREFIX + "C": "3"})
+    assert config.config == {"a": 1, "c": 3}
 
 
-@pytest.mark.parametrize('inp,out', [
-    ('1', '1'),
-    (1, 1),
-    ('$FOO', 'foo'),
-    ([1, '$FOO'], [1, 'foo']),
-    ((1, '$FOO'), (1, 'foo')),
-    ({1, '$FOO'}, {1, 'foo'}),
-    ({'a': '$FOO'}, {'a': 'foo'}),
-    ({'a': 'A', 'b': [1, '2', '$FOO']}, {'a': 'A', 'b': [1, '2', 'foo']})
-])
+@pytest.mark.parametrize(
+    "inp,out",
+    [
+        ("1", "1"),
+        (1, 1),
+        ("$FOO", "foo"),
+        ([1, "$FOO"], [1, "foo"]),
+        ((1, "$FOO"), (1, "foo")),
+        ({1, "$FOO"}, {1, "foo"}),
+        ({"a": "$FOO"}, {"a": "foo"}),
+        ({"a": "A", "b": [1, "2", "$FOO"]}, {"a": "A", "b": [1, "2", "foo"]}),
+    ],
+)
 def test_expand_environment_variables(inp, out):
     try:
         os.environ["FOO"] = "foo"
         assert expand_environment_variables(inp) == out
     finally:
-        del os.environ['FOO']
+        del os.environ["FOO"]
 
 
 def test_env_var_canonical_name(monkeypatch):
     value = 3
-    monkeypatch.setenv(ENV_PREFIX + 'A_B', str(value))
+    monkeypatch.setenv(ENV_PREFIX + "A_B", str(value))
     config = Config(CONFIG_NAME)
 
-    assert config.get('a_b') == value
-    assert config.get('a-b') == value
+    assert config.get("a_b") == value
+    assert config.get("a-b") == value
 
 
 def test_get_set_canonical_name():
-    c = {'x-y': {'a_b': 123}}
+    c = {"x-y": {"a_b": 123}}
     config = Config(CONFIG_NAME)
     config.update(c)
 
-    keys = ['x_y.a_b', 'x-y.a-b', 'x_y.a-b']
+    keys = ["x_y.a_b", "x-y.a-b", "x_y.a-b"]
     for k in keys:
         assert config.get(k) == 123
 
-    with config.set({'x_y': {'a-b': 456}}):
+    with config.set({"x_y": {"a-b": 456}}):
         for k in keys:
             assert config.get(k) == 456
 
     # No change to new keys in sub dicts
-    with config.set({'x_y': {'a-b': {'c_d': 1}, 'e-f': 2}}):
-        assert config.get('x_y.a-b') == {'c_d': 1}
-        assert config.get('x_y.e_f') == 2
+    with config.set({"x_y": {"a-b": {"c_d": 1}, "e-f": 2}}):
+        assert config.get("x_y.a-b") == {"c_d": 1}
+        assert config.get("x_y.e_f") == 2
 
 
-@pytest.mark.parametrize('key', ['custom_key', 'custom-key'])
+@pytest.mark.parametrize("key", ["custom_key", "custom-key"])
 def test_get_set_roundtrip(key):
     value = 123
     config = Config(CONFIG_NAME)
     with config.set({key: value}):
-        assert config.get('custom_key') == value
-        assert config.get('custom-key') == value
+        assert config.get("custom_key") == value
+        assert config.get("custom-key") == value
 
 
 def test_merge_none_to_dict():
-    assert merge({'a': None, 'c': 0}, {'a': {'b': 1}}) == {'a': {'b': 1}, 'c': 0}
+    assert merge({"a": None, "c": 0}, {"a": {"b": 1}}) == {"a": {"b": 1}, "c": 0}
 
 
 def test_pprint(capsys):
     test_config = Config(CONFIG_NAME)
-    test_config.config = {'x': 1, 'y': {'a': 2}}
+    test_config.config = {"x": 1, "y": {"a": 2}}
     test_config.pprint()
     cap_out = capsys.readouterr()[0]
     assert cap_out == """{'x': 1, 'y': {'a': 2}}\n"""
@@ -473,14 +479,14 @@ def test_pprint(capsys):
 
 def test_to_dict():
     test_config = Config(CONFIG_NAME)
-    test_config.config = {'x': 1, 'y': {'a': 2}}
+    test_config.config = {"x": 1, "y": {"a": 2}}
     d = test_config.to_dict()
     assert d == test_config.config
     # make sure we copied
-    d['z'] = 3
-    d['y']['b'] = 4
+    d["z"] = 3
+    d["y"]["b"] = 4
     assert d != test_config.config
-    assert d['y'] != test_config.config['y']
+    assert d["y"] != test_config.config["y"]
 
 
 def test_path_includes_site_prefix():

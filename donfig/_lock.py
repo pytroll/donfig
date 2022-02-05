@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2022 Donfig Developers
 # Copyright (c) 2014-2022, Anaconda, Inc. and contributors
@@ -30,8 +29,8 @@ There are no guarantees that this module will exist in the future.
 """
 
 import uuid
-from weakref import WeakValueDictionary
 from threading import Lock
+from weakref import WeakValueDictionary
 
 
 class SerializableLock:
