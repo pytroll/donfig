@@ -1,3 +1,34 @@
+## Version 0.7.0 (2022/02/04)
+
+### Issues Closed
+
+* [Issue 17](https://github.com/pytroll/donfig/issues/17) - Threadlock TypeError when trying to pickle donfig object ([PR 22](https://github.com/pytroll/donfig/pull/22) by [@djhoese](https://github.com/djhoese))
+* [Issue 16](https://github.com/pytroll/donfig/issues/16) - Failure to initialize Config object ([PR 20](https://github.com/pytroll/donfig/pull/20) by [@djhoese](https://github.com/djhoese))
+* [Issue 14](https://github.com/pytroll/donfig/issues/14) - 0.6.0 release?
+* [Issue 13](https://github.com/pytroll/donfig/issues/13) - MNT: Stop using ci-helpers in appveyor.yml
+
+In this release 4 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 21](https://github.com/pytroll/donfig/pull/21) - Make `test__get_paths` robust to `site.PREFIXES` being set
+
+#### Features added
+
+* [PR 23](https://github.com/pytroll/donfig/pull/23) - Drop Python 3.6 support and add pre-commit
+* [PR 22](https://github.com/pytroll/donfig/pull/22) - Add SerializableLock from Dask to use in `Config.set` ([17](https://github.com/pytroll/donfig/issues/17))
+* [PR 19](https://github.com/pytroll/donfig/pull/19) - Refactor config default search path retrieval
+* [PR 18](https://github.com/pytroll/donfig/pull/18) - Expand YAML config search directories
+
+#### Documentation changes
+
+* [PR 20](https://github.com/pytroll/donfig/pull/20) - Fix inaccurate example of Config creation with defaults ([16](https://github.com/pytroll/donfig/issues/16))
+
+In this release 6 pull requests were closed.
+
+
 ## Version 0.6.0 (2021/01/17)
 
 ### Pull Requests Merged
