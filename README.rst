@@ -10,6 +10,10 @@ Donfig
 .. image:: https://anaconda.org/conda-forge/donfig/badges/version.svg
    :target: https://anaconda.org/conda-forge/donfig/
 
+.. image:: https://results.pre-commit.ci/badge/github/pytroll/donfig/main.svg
+   :target: https://results.pre-commit.ci/latest/github/pytroll/donfig/main
+   :alt: pre-commit.ci status
+
 Donfig is a python library meant to make configuration easier for other
 python packages. Donfig can be configured programmatically, by
 environment variables, or from YAML files in standard locations. The

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2018-2019 Donfig Developers
 # Copyright (c) 2014-2018, Anaconda, Inc. and contributors
@@ -23,19 +22,14 @@
 # SOFTWARE.
 import ast
 import os
+import pprint
 import site
 import sys
-import pprint
-from copy import deepcopy
 from collections.abc import Mapping
+from contextlib import nullcontext
+from copy import deepcopy
 
 from ._lock import SerializableLock
-
-try:
-    from contextlib import nullcontext
-except ImportError:
-    # <python 3.7
-    from .utils import nullcontext
 
 try:
     import yaml
@@ -43,18 +37,7 @@ except ImportError:
     yaml = None
 
 
-if sys.version_info[0] == 2:
-    # python 2
-    def makedirs(name, mode=0o777, exist_ok=True):
-        try:
-            os.makedirs(name, mode=mode)
-        except OSError:
-            if not exist_ok or not os.path.isdir(name):
-                raise
-else:
-    makedirs = os.makedirs
-
-no_default = '__no_default__'
+no_default = "__no_default__"
 
 
 def canonical_name(k, config):
@@ -72,7 +55,7 @@ def canonical_name(k, config):
         # config is not a mapping, return the same name as provided
         return k
 
-    altk = k.replace('_', '-') if '_' in k else k.replace('-', '_')
+    altk = k.replace("_", "-") if "_" in k else k.replace("-", "_")
 
     if altk in config:
         return altk
@@ -80,7 +63,7 @@ def canonical_name(k, config):
     return k
 
 
-def update(old, new, priority='new'):
+def update(old, new, priority="new"):
     """Update a nested dictionary with values from another
 
     This is like dict.update except that it smoothly merges nested values
@@ -118,7 +101,7 @@ def update(old, new, priority='new'):
                 old[k] = {}
             update(old[k], v, priority=priority)
         else:
-            if priority == 'new' or k not in old:
+            if priority == "new" or k not in old:
                 old[k] = v
 
     return old
@@ -160,11 +143,14 @@ def collect_yaml(paths):
         if os.path.exists(path):
             if os.path.isdir(path):
                 try:
-                    file_paths.extend(sorted([
-                        os.path.join(path, p)
-                        for p in os.listdir(path)
-                        if os.path.splitext(p)[1].lower() in ('.json', '.yaml', '.yml')
-                    ]))
+                    file_paths.extend(
+                        sorted(
+                            os.path.join(path, p)
+                            for p in os.listdir(path)
+                            if os.path.splitext(p)[1].lower()
+                            in (".json", ".yaml", ".yml")
+                        )
+                    )
                 except OSError:
                     # Ignore permission errors
                     pass
@@ -179,7 +165,7 @@ def collect_yaml(paths):
             with open(path) as f:
                 data = yaml.safe_load(f.read()) or {}
                 configs.append(data)
-        except (OSError, IOError):
+        except OSError:
             # Ignore permission errors
             pass
 
@@ -204,7 +190,7 @@ def collect_env(prefix, env=None):
     prefix_len = len(prefix)
     for name, value in env.items():
         if name.startswith(prefix):
-            varname = name[prefix_len:].lower().replace('__', '.')
+            varname = name[prefix_len:].lower().replace("__", ".")
             try:
                 d[varname] = ast.literal_eval(value)
             except (SyntaxError, ValueError):
@@ -217,7 +203,7 @@ def collect_env(prefix, env=None):
     return result
 
 
-class ConfigSet(object):
+class ConfigSet:
     """Temporarily set configuration values within a context manager
 
     Note, this class should be used directly from the `Config`
@@ -236,6 +222,7 @@ class ConfigSet(object):
     donfig.Config.get
 
     """
+
     def __init__(self, config, lock, arg=None, **kwargs):
         with lock:
             self.config = config
@@ -335,29 +322,38 @@ def expand_environment_variables(config):
         return config
 
 
-class Config(object):
-    def __init__(self, name, defaults=None, paths=None, env=None, env_var=None, root_env_var=None, env_prefix=None):
+class Config:
+    def __init__(
+        self,
+        name,
+        defaults=None,
+        paths=None,
+        env=None,
+        env_var=None,
+        root_env_var=None,
+        env_prefix=None,
+    ):
         if root_env_var is None:
-            root_env_var = '{}_ROOT_CONFIG'.format(name.upper())
+            root_env_var = f"{name.upper()}_ROOT_CONFIG"
         if paths is None:
             paths = [
-                os.getenv(root_env_var, '/etc/{}'.format(name)),
-                os.path.join(sys.prefix, 'etc', name),
+                os.getenv(root_env_var, f"/etc/{name}"),
+                os.path.join(sys.prefix, "etc", name),
                 *[os.path.join(prefix, "etc", name) for prefix in site.PREFIXES],
-                os.path.join(os.path.expanduser('~'), '.config', name),
+                os.path.join(os.path.expanduser("~"), ".config", name),
             ]
 
         if env_prefix is None:
-            env_prefix = "{}_".format(name.upper())
+            env_prefix = f"{name.upper()}_"
         if env is None:
             env = os.environ
         if env_var is None:
-            env_var = '{}_CONFIG'.format(name.upper())
+            env_var = f"{name.upper()}_CONFIG"
         if env_var in os.environ:
             main_path = os.environ[env_var]
             paths.append(main_path)
         else:
-            main_path = os.path.join(os.path.expanduser('~'), '.config', name)
+            main_path = os.path.join(os.path.expanduser("~"), ".config", name)
 
         # Remove duplicate paths while preserving ordering
         paths = list(reversed(list(dict.fromkeys(reversed(paths)))))
@@ -444,7 +440,7 @@ class Config(object):
         self.clear()
 
         for d in self.defaults:
-            update(self.config, d, priority='old')
+            update(self.config, d, priority="old")
 
         update(self.config, self.collect(**kwargs))
 
@@ -471,7 +467,7 @@ class Config(object):
         donfig.Config.set
 
         """
-        keys = key.split('.')
+        keys = key.split(".")
         result = self.config
         for k in keys:
             k = canonical_name(k, result)
@@ -495,7 +491,7 @@ class Config(object):
 
         """
         self.defaults.append(new)
-        update(self.config, new, priority='old')
+        update(self.config, new, priority="old")
 
     def to_dict(self):
         """Return dictionary copy of configuration.
@@ -521,7 +517,7 @@ class Config(object):
         """
         self.config = merge(self.config, dicts)
 
-    def update(self, new, priority='new'):
+    def update(self, new, priority="new"):
         """Update the internal configuration dictionary with `new`.
 
         See :func:`~donfig.config_obj.update` for more information.
@@ -630,27 +626,29 @@ class Config(object):
 
         try:
             if not os.path.exists(destination):
-                makedirs(directory, exist_ok=True)
+                os.makedirs(directory, exist_ok=True)
 
                 # Atomically create destination.  Parallel testing discovered
                 # a race condition where a process can be busy creating the
                 # destination while another process reads an empty config file.
-                tmp = '%s.tmp.%d' % (destination, os.getpid())
+                tmp = "%s.tmp.%d" % (destination, os.getpid())
                 with open(source) as f:
                     lines = list(f)
 
                 if comment:
-                    lines = ['# ' + line
-                             if line.strip() and not line.startswith('#')
-                             else line
-                             for line in lines]
+                    lines = [
+                        "# " + line
+                        if line.strip() and not line.startswith("#")
+                        else line
+                        for line in lines
+                    ]
 
-                with open(tmp, 'w') as f:
-                    f.write(''.join(lines))
+                with open(tmp, "w") as f:
+                    f.write("".join(lines))
 
                 try:
                     os.rename(tmp, destination)
                 except OSError:
                     os.remove(tmp)
-        except (IOError, OSError):
+        except OSError:
             pass

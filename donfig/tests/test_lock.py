@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2022 Donfig Developers
 # Copyright (c) 2014-2018, Anaconda, Inc. and contributors
