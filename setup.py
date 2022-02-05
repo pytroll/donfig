@@ -43,6 +43,6 @@ setup(name=NAME,
       packages=find_packages(),
       zip_safe=False,
       install_requires=['pyyaml'],
-      tests_require=['pytest'],
+      tests_require=['pytest', 'cloudpickle'],
       python_requires='>=3.6',
       )

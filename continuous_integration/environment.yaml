@@ -6,3 +6,4 @@ dependencies:
   - pytest
   - pytest-cov
   - python=3.9
+  - cloudpickle

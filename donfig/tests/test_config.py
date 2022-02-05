@@ -36,6 +36,7 @@ from donfig.config_obj import (Config, update, merge, collect_yaml,
 from donfig.utils import tmpfile
 from collections import OrderedDict
 from contextlib import contextmanager
+import cloudpickle
 
 CONFIG_NAME = 'mytest'
 ENV_PREFIX = CONFIG_NAME.upper() + '_'
@@ -535,3 +536,10 @@ def test__get_paths(monkeypatch):
         paths = config.paths
         assert os.path.join(prefix, "etc", "mypkg") in paths
         assert len(paths) == len(set(paths))
+
+
+def test_serialization():
+    config = Config(CONFIG_NAME)
+    config.set(one_key="one_value")
+    new_config = cloudpickle.loads(cloudpickle.dumps(config))
+    assert new_config.get("one_key") == "one_value"
