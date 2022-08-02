@@ -5,7 +5,7 @@ repos:
         - id: isort
           language_version: python3
   - repo: https://github.com/asottile/pyupgrade
-    rev: v2.37.2
+    rev: v2.37.3
     hooks:
       - id: pyupgrade
         args:
@@ -19,7 +19,7 @@ repos:
             - --target-version=py37
             - --exclude="(versioneer\.py|donfig\/version\.py)"
   -   repo: https://github.com/PyCQA/flake8
-      rev: 4.0.1
+      rev: 5.0.2
       hooks:
         - id: flake8
           language_version: python3
