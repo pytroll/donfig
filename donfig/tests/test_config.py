@@ -490,7 +490,6 @@ def test_to_dict():
 
 
 def test_path_includes_site_prefix():
-
     command = (
         "import site, os; "
         'prefix = os.path.join("include", "this", "path"); '
