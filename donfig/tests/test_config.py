@@ -574,3 +574,17 @@ def test_serialization():
     config.set(one_key="one_value")
     new_config = cloudpickle.loads(cloudpickle.dumps(config))
     assert new_config.get("one_key") == "one_value"
+
+
+def test_deprecations_rename():
+    config = Config(CONFIG_NAME, deprecations={"fuse_ave_width": "optimization.fuse.ave-width"})
+    with pytest.warns(Warning) as info, config.set(fuse_ave_width=123):
+        assert config.get("optimization.fuse.ave-width") == 123
+
+    assert "optimization.fuse.ave-width" in str(info[0].message)
+
+
+def test_deprecations_removed():
+    config = Config(CONFIG_NAME, deprecations={"fuse_ave_width": None})
+    with pytest.raises(ValueError):
+        config.set(fuse_ave_width=123)
