@@ -20,32 +20,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from setuptools import find_packages, setup
-
 import versioneer
-
-NAME = "donfig"
-README = open("README.rst").read()
+from setuptools import setup
 
 setup(
-    name=NAME,
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
-    description="Python package for configuring a python package",
-    long_description=README,
-    author="Donfig Developers",
-    classifiers=[
-        "Development Status :: 3 - Alpha",
-        "Intended Audience :: Developers",
-        "License :: OSI Approved :: MIT License",
-        "Operating System :: OS Independent",
-        "Programming Language :: Python",
-        "Topic :: Scientific/Engineering",
-    ],
-    url="https://github.com/pytroll/donfig",
-    packages=find_packages(),
-    zip_safe=False,
-    install_requires=["pyyaml"],
-    tests_require=["pytest", "cloudpickle"],
-    python_requires=">=3.7",
 )

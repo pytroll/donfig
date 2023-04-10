@@ -1,0 +1,89 @@
+[build-system]
+requires = ["setuptools>=62.6", "versioneer[toml]==0.28"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "donfig"
+description = "Python package for configuring a python package"
+maintainers = [{name = "David Hoese", email = "david.hoese@ssec.wisc.edu"}]
+license = {text = "MIT"}
+keywords = ["task-scheduling parallel numpy pandas pydata"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Topic :: Scientific/Engineering",
+]
+readme = "README.rst"
+urls = {Homepage = "https://github.com/pytroll/donfig"}
+requires-python = ">=3.8"
+dependencies = [
+    "pyyaml",
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "cloudpickle",
+]
+docs = [
+    "sphinx>=4.0.0",
+    "numpydoc",
+    "pytest",
+    "cloudpickle",
+]
+
+[tool.setuptools]
+packages = ["donfig"]
+include-package-data = true
+
+[tool.mypy]
+# Silence errors about Python 3.9-style delayed type annotations on Python 3.8
+python_version = "3.9"
+# See https://github.com/python/mypy/issues/12286 for automatic multi-platform support
+platform = "linux"
+# platform = win32
+# platform = darwin
+plugins = ["numpy.typing.mypy_plugin"]
+allow_untyped_decorators = false
+ignore_missing_imports = true
+no_implicit_optional = true
+show_error_codes = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_unreachable = true
+warn_unused_configs = true
+
+[tool.black]
+line-length = 120
+exclude = '''
+(
+  \.git
+  | build
+  | dist
+  | donfig/version\.py
+)
+
+'''
+
+[tool.isort]
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+profile = "black"
+skip_gitignore = true
+force_to_top = ["true"]
+default_section = "THIRDPARTY"
+known_first_party = ["donfig"]
+skip = ["donfig/version.py"]
+
+[tool.versioneer]
+VCS = "git"
+style = "pep440"
+versionfile_source = "donfig/version.py"
+versionfile_build = "donfig/version.py"
+tag_prefix = "v"
+
+[tool.coverage.run]
+omit = ["donfig/version.py", "versioneer.py"]

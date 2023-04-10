@@ -1,4 +1,4 @@
+include DASK_LICENSE.txt
 include LICENSE.txt
 include README.rst
-include versioneer.py
 include donfig/version.py

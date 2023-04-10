@@ -132,9 +132,7 @@ def no_read_permissions(path):
         os.chmod(path, perm_orig)
 
 
-@pytest.mark.skipif(
-    sys.platform == "win32", reason="Can't make writeonly file on windows"
-)
+@pytest.mark.skipif(sys.platform == "win32", reason="Can't make writeonly file on windows")
 @pytest.mark.parametrize("kind", ["directory", "file"])
 def test_collect_yaml_permission_errors(tmpdir, kind):
     a = {"x": 1, "y": 2}
@@ -159,6 +157,34 @@ def test_collect_yaml_permission_errors(tmpdir, kind):
     with no_read_permissions(cant_read):
         config = merge(*collect_yaml(paths=[dir_path]))
         assert config == expected
+
+
+def test_collect_yaml_malformed_file(tmpdir):
+    dir_path = str(tmpdir)
+    fil_path = os.path.join(dir_path, "a.yaml")
+
+    with open(fil_path, mode="wb") as f:
+        f.write(b"{")
+
+    with pytest.raises(ValueError) as rec:
+        collect_yaml(paths=[dir_path])
+    assert repr(fil_path) in str(rec.value)
+    assert "is malformed" in str(rec.value)
+    assert "original error message" in str(rec.value)
+
+
+def test_collect_yaml_no_top_level_dict(tmpdir):
+    dir_path = str(tmpdir)
+    fil_path = os.path.join(dir_path, "a.yaml")
+
+    with open(fil_path, mode="wb") as f:
+        f.write(b"[1234]")
+
+    with pytest.raises(ValueError) as rec:
+        collect_yaml(paths=[dir_path])
+    assert repr(fil_path) in str(rec.value)
+    assert "is malformed" in str(rec.value)
+    assert "must have a dict" in str(rec.value)
 
 
 def test_env():

@@ -1,6 +1,4 @@
-from .version import get_versions
-
-__version__ = get_versions()["version"]
-del get_versions
-
+from . import version  # noqa
 from .config_obj import Config  # noqa
+
+__version__ = version.get_versions()["version"]

@@ -20,27 +20,27 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+from __future__ import annotations
+
 import ast
+import contextlib
 import os
 import pprint
 import site
 import sys
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from contextlib import nullcontext
 from copy import deepcopy
+from typing import Any, Literal, MutableMapping
+
+import yaml
 
 from ._lock import SerializableLock
-
-try:
-    import yaml
-except ImportError:
-    yaml = None
-
 
 no_default = "__no_default__"
 
 
-def canonical_name(k, config):
+def canonical_name(k: str, config: Mapping[str, Any]) -> str:
     """Return the canonical name for a key.
 
     Handles user choice of '-' or '_' conventions by standardizing on whichever
@@ -63,7 +63,11 @@ def canonical_name(k, config):
     return k
 
 
-def update(old, new, priority="new"):
+def update(
+    old: MutableMapping[str, Any],
+    new: Mapping[str, Any],
+    priority: Literal["old", "new"] = "new",
+) -> Mapping[str, Any]:
     """Update a nested dictionary with values from another
 
     This is like dict.update except that it smoothly merges nested values
@@ -107,7 +111,7 @@ def update(old, new, priority="new"):
     return old
 
 
-def merge(*dicts):
+def merge(*dicts: Mapping) -> dict:
     """Update a sequence of nested dictionaries
 
     This prefers the values in the latter dictionaries to those in the former
@@ -124,13 +128,13 @@ def merge(*dicts):
     donfig.config_obj.update
 
     """
-    result = {}
+    result: dict = {}
     for d in dicts:
         update(result, d)
     return result
 
 
-def collect_yaml(paths):
+def collect_yaml(paths: Sequence[str]) -> list[dict]:
     """Collect configuration from yaml files
 
     This searches through a list of paths, expands to find all yaml or json
@@ -147,8 +151,7 @@ def collect_yaml(paths):
                         sorted(
                             os.path.join(path, p)
                             for p in os.listdir(path)
-                            if os.path.splitext(p)[1].lower()
-                            in (".json", ".yaml", ".yml")
+                            if os.path.splitext(p)[1].lower() in (".json", ".yaml", ".yml")
                         )
                     )
                 except OSError:
@@ -161,18 +164,31 @@ def collect_yaml(paths):
 
     # Parse yaml files
     for path in file_paths:
-        try:
-            with open(path) as f:
-                data = yaml.safe_load(f.read()) or {}
-                configs.append(data)
-        except OSError:
-            # Ignore permission errors
-            pass
+        config = _load_config_file(path)
+        if config is not None:
+            configs.append(config)
 
     return configs
 
 
-def collect_env(prefix, env=None):
+def _load_config_file(path: str) -> dict | None:
+    try:
+        with open(path) as f:
+            config = yaml.safe_load(f.read())
+    except OSError:
+        # Ignore permission errors
+        return None
+    except Exception as exc:
+        raise ValueError(f"A config file at {path!r} is malformed, original error " f"message:\n\n{exc}") from None
+    if config is not None and not isinstance(config, dict):
+        raise ValueError(
+            f"A config file at {path!r} is malformed - config files must have "
+            f"a dict as the top level object, got a {type(config).__name__} instead"
+        )
+    return config
+
+
+def collect_env(prefix: str, env: Mapping[str, str] | None = None) -> dict:
     """Collect config from environment variables
 
     This grabs environment variables of the form "DASK_FOO__BAR_BAZ=123" and
@@ -196,7 +212,7 @@ def collect_env(prefix, env=None):
             except (SyntaxError, ValueError):
                 d[varname] = value
 
-    result = {}
+    result: dict = {}
     # fake thread lock to use set functionality
     lock = nullcontext()
     ConfigSet(result, lock, d)
@@ -223,10 +239,16 @@ class ConfigSet:
 
     """
 
-    def __init__(self, config, lock, arg=None, **kwargs):
+    def __init__(
+        self,
+        config: MutableMapping,
+        lock: SerializableLock | contextlib.AbstractContextManager,
+        arg: Mapping | None = None,
+        **kwargs,
+    ):
         with lock:
             self.config = config
-            self._record = []
+            self._record: list[tuple[str, tuple, Any]] = []
 
             if arg is not None:
                 for key, value in arg.items():
@@ -254,7 +276,14 @@ class ConfigSet:
                 else:
                     d.pop(path[-1], None)
 
-    def _assign(self, keys, value, d, path=(), record=True):
+    def _assign(
+        self,
+        keys: Sequence[str],
+        value: Any,
+        d: MutableMapping,
+        path: tuple[str, ...] = (),
+        record: bool = True,
+    ) -> None:
         """Assign value into a nested configuration dictionary
 
         Parameters
@@ -265,7 +294,7 @@ class ConfigSet:
         d : dict
             The part of the nested dictionary into which we want to assign the
             value
-        path : List[str]
+        path : tuple[str], optional
             Used internally to hold the path of old values
         record : bool, optional
             Whether this operation needs to be recorded to allow for rollback.
@@ -381,16 +410,16 @@ class Config:
     def pprint(self, **kwargs):
         return pprint.pprint(self.config, **kwargs)
 
-    def collect(self, paths=None, env=None):
+    def collect(self, paths: list[str] | None = None, env: Mapping[str, str] | None = None) -> dict:
         """Collect configuration from paths and environment variables
 
         Parameters
         ----------
-        paths : List[str]
+        paths : list[str]
             A list of paths to search for yaml config files. Defaults to the
             paths passed when creating this object.
 
-        env : dict
+        env : Mapping[str, str]
             The system environment variables to search through. Defaults to
             the environment dictionary passed when creating this object.
 
@@ -416,7 +445,7 @@ class Config:
 
         return merge(*configs)
 
-    def refresh(self, **kwargs):
+    def refresh(self, **kwargs) -> None:
         """Update configuration by re-reading yaml files and env variables.
 
         This goes through the following stages:
@@ -444,7 +473,7 @@ class Config:
 
         update(self.config, self.collect(**kwargs))
 
-    def get(self, key, default=no_default):
+    def get(self, key: str, default: Any = no_default) -> Any:
         """Get elements from global config
 
         Use '.' for nested access
@@ -480,7 +509,7 @@ class Config:
                     raise
         return result
 
-    def update_defaults(self, new):
+    def update_defaults(self, new: Mapping) -> None:
         """Add a new set of defaults to the configuration
 
         It does two things:
@@ -525,7 +554,7 @@ class Config:
         """
         self.config = update(self.config, new, priority=priority)
 
-    def expand_environment_variables(self):
+    def expand_environment_variables(self) -> None:
         """Expand any environment variables in this configuration in-place.
 
         See :func:`~donfig.config_obj.expand_environment_variables` for more information.
@@ -533,7 +562,7 @@ class Config:
         """
         self.config = expand_environment_variables(self.config)
 
-    def rename(self, aliases):
+    def rename(self, aliases: Mapping) -> None:
         """Rename old keys to new keys
 
         This helps migrate older configuration versions over time
@@ -591,7 +620,7 @@ class Config:
         """
         return ConfigSet(self.config, self.config_lock, arg=arg, **kwargs)
 
-    def ensure_file(self, source, destination=None, comment=True):
+    def ensure_file(self, source: str, destination: str | None = None, comment: bool = True) -> None:
         """Copy file to default location if it does not already exist
 
         This tries to move a default configuration file to a default location if
@@ -636,12 +665,7 @@ class Config:
                     lines = list(f)
 
                 if comment:
-                    lines = [
-                        "# " + line
-                        if line.strip() and not line.startswith("#")
-                        else line
-                        for line in lines
-                    ]
+                    lines = ["# " + line if line.strip() and not line.startswith("#") else line for line in lines]
 
                 with open(tmp, "w") as f:
                     f.write("".join(lines))

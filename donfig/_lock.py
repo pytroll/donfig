@@ -20,7 +20,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-"""Config syncronization locks ported from upstream dask.
+"""Config synchronization locks ported from upstream dask.
 
 Originally part of Dask and stored in the dask/utils.py module. This module
 should be considered private and should not be imported directly by users.
@@ -61,7 +61,7 @@ class SerializableLock:
     The creation of locks is itself not threadsafe.
     """
 
-    _locks = WeakValueDictionary()
+    _locks: WeakValueDictionary = WeakValueDictionary()
 
     def __init__(self, token=None):
         self.token = token or str(uuid.uuid4())
