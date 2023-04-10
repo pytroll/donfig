@@ -37,8 +37,10 @@ from donfig.config_obj import (
     canonical_name,
     collect_env,
     collect_yaml,
+    deserialize,
     expand_environment_variables,
     merge,
+    serialize,
     update,
 )
 from donfig.utils import tmpfile
@@ -574,3 +576,26 @@ def test_serialization():
     config.set(one_key="one_value")
     new_config = cloudpickle.loads(cloudpickle.dumps(config))
     assert new_config.get("one_key") == "one_value"
+
+
+def test_config_serialization_functions():
+    serialized = serialize({"array": {"svg": {"size": 150}}})
+    config_dict = deserialize(serialized)
+    assert config_dict["array"]["svg"]["size"] == 150
+
+
+def test_config_object_serialization():
+    config = Config(CONFIG_NAME)
+    config.set({"array.svg.size": 150})
+    ser_config = config.serialize()
+    deser_dict = deserialize(ser_config)
+    deser_config = Config(CONFIG_NAME)
+    deser_config.update(deser_dict)
+    assert deser_config.get("array.svg.size") == 150
+
+
+def test_config_inheritance(monkeypatch):
+    ser_dict = serialize({"array": {"svg": {"size": 150}}})
+    monkeypatch.setenv(f"{ENV_PREFIX}_INTERNAL_INHERIT_CONFIG", ser_dict)
+    config = Config(CONFIG_NAME)
+    assert config.get("array.svg.size") == 150

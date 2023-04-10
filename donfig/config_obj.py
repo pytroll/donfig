@@ -23,7 +23,9 @@
 from __future__ import annotations
 
 import ast
+import base64
 import contextlib
+import json
 import os
 import pprint
 import site
@@ -202,7 +204,13 @@ def collect_env(prefix: str, env: Mapping[str, str] | None = None) -> dict:
     """
     if env is None:
         env = os.environ
-    d = {}
+
+    serial_env = f"{prefix}_INTERNAL_INHERIT_CONFIG"
+    if serial_env in env:
+        d = deserialize(env[serial_env])
+    else:
+        d = {}
+
     prefix_len = len(prefix)
     for name, value in env.items():
         if name.startswith(prefix):
@@ -676,3 +684,52 @@ class Config:
                     os.remove(tmp)
         except OSError:
             pass
+
+    def serialize(self) -> str:
+        """Serialize conifg data into a string.
+
+        See :func:`serialize` for more information.
+
+        """
+        return serialize(self.config)
+
+
+def serialize(data: Any) -> str:
+    """Serialize config data into a string.
+
+    Typically used to pass config via the ``MYPKG_INTERNAL_INHERIT_CONFIG`` environment variable.
+
+    Parameters
+    ----------
+    data: json-serializable object
+        The data to serialize
+
+    Returns
+    -------
+    serialized_data: str
+        The serialized data as a string
+
+    """
+    return base64.urlsafe_b64encode(json.dumps(data).encode()).decode()
+
+
+def deserialize(data: str) -> Any:
+    """De-serialize config data into the original object.
+
+    Typically used when receiving config via the
+    ``MYPKG_INTERNAL_INHERIT_CONFIG`` environment variable. This is
+    automatically called when a :class:`Config` is created and environment
+    variables are loaded.
+
+    Parameters
+    ----------
+    data: str
+        String serialized by :func:`donfig.serialize`
+
+    Returns
+    -------
+    deserialized_data: obj
+        The de-serialized data
+
+    """
+    return json.loads(base64.urlsafe_b64decode(data.encode()).decode())
