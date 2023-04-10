@@ -32,6 +32,7 @@ test = [
 
 [tool.setuptools]
 packages = ["donfig"]
+include-package-data = true
 
 [tool.mypy]
 # Silence errors about Python 3.9-style delayed type annotations on Python 3.8
