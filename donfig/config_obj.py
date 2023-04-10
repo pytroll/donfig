@@ -31,15 +31,11 @@ import sys
 from collections.abc import Mapping, Sequence
 from contextlib import nullcontext
 from copy import deepcopy
-from typing import TYPE_CHECKING, Any, MutableMapping
+from typing import Any, Literal, MutableMapping
 
 import yaml
 
 from ._lock import SerializableLock
-
-if TYPE_CHECKING:
-    from typing import Literal
-
 
 no_default = "__no_default__"
 
