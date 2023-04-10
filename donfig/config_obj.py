@@ -23,6 +23,7 @@
 from __future__ import annotations
 
 import ast
+import contextlib
 import os
 import pprint
 import site
@@ -154,8 +155,7 @@ def collect_yaml(paths: Sequence[str]) -> list[dict]:
                         sorted(
                             os.path.join(path, p)
                             for p in os.listdir(path)
-                            if os.path.splitext(p)[1].lower()
-                            in (".json", ".yaml", ".yml")
+                            if os.path.splitext(p)[1].lower() in (".json", ".yaml", ".yml")
                         )
                     )
                 except OSError:
@@ -230,10 +230,16 @@ class ConfigSet:
 
     """
 
-    def __init__(self, config, lock, arg=None, **kwargs):
+    def __init__(
+        self,
+        config: MutableMapping,
+        lock: SerializableLock | contextlib.AbstractContextManager,
+        arg: Mapping | None = None,
+        **kwargs,
+    ):
         with lock:
             self.config = config
-            self._record = []
+            self._record: list[tuple[str, tuple, Any]] = []
 
             if arg is not None:
                 for key, value in arg.items():
@@ -265,7 +271,7 @@ class ConfigSet:
         self,
         keys: Sequence[str],
         value: Any,
-        d: dict,
+        d: MutableMapping,
         path: tuple[str, ...] = (),
         record: bool = True,
     ) -> None:
@@ -395,9 +401,7 @@ class Config:
     def pprint(self, **kwargs):
         return pprint.pprint(self.config, **kwargs)
 
-    def collect(
-        self, paths: list[str] | None = None, env: Mapping[str, str] | None = None
-    ) -> dict:
+    def collect(self, paths: list[str] | None = None, env: Mapping[str, str] | None = None) -> dict:
         """Collect configuration from paths and environment variables
 
         Parameters
@@ -607,9 +611,7 @@ class Config:
         """
         return ConfigSet(self.config, self.config_lock, arg=arg, **kwargs)
 
-    def ensure_file(
-        self, source: str, destination: str | None = None, comment: bool = True
-    ) -> None:
+    def ensure_file(self, source: str, destination: str | None = None, comment: bool = True) -> None:
         """Copy file to default location if it does not already exist
 
         This tries to move a default configuration file to a default location if
@@ -654,12 +656,7 @@ class Config:
                     lines = list(f)
 
                 if comment:
-                    lines = [
-                        "# " + line
-                        if line.strip() and not line.startswith("#")
-                        else line
-                        for line in lines
-                    ]
+                    lines = ["# " + line if line.strip() and not line.startswith("#") else line for line in lines]
 
                 with open(tmp, "w") as f:
                     f.write("".join(lines))
