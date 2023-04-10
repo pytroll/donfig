@@ -30,6 +30,9 @@ test = [
     "cloudpickle",
 ]
 
+[tool.setuptools]
+packages = ["donfig"]
+
 [tool.mypy]
 # Silence errors about Python 3.9-style delayed type annotations on Python 3.8
 python_version = "3.9"
@@ -46,6 +49,18 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 warn_unreachable = true
 
+[tool.black]
+line-length = 120
+exclude = '''
+(
+  \.git
+  | build
+  | dist
+  | donfig/version\.py
+)
+
+'''
+
 [tool.isort]
 sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
 profile = "black"
@@ -53,7 +68,7 @@ skip_gitignore = true
 force_to_top = ["true"]
 default_section = "THIRDPARTY"
 known_first_party = ["donfig"]
-skip = ["versioneer.py", "donfig/version.py"]
+skip = ["donfig/version.py"]
 
 [tool.versioneer]
 VCS = "git"
