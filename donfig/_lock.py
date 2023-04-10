@@ -61,7 +61,7 @@ class SerializableLock:
     The creation of locks is itself not threadsafe.
     """
 
-    _locks = WeakValueDictionary()
+    _locks: WeakValueDictionary = WeakValueDictionary()
 
     def __init__(self, token=None):
         self.token = token or str(uuid.uuid4())
