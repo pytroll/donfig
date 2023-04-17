@@ -30,6 +30,7 @@ import os
 import pprint
 import site
 import sys
+import warnings
 from collections.abc import Mapping, Sequence
 from contextlib import nullcontext
 from copy import deepcopy
@@ -190,7 +191,9 @@ def _load_config_file(path: str) -> dict | None:
     return config
 
 
-def collect_env(prefix: str, env: Mapping[str, str] | None = None) -> dict:
+def collect_env(
+    prefix: str, env: Mapping[str, str] | None = None, deprecations: MutableMapping[str, str | None] | None = None
+) -> dict:
     """Collect config from environment variables
 
     This grabs environment variables of the form "DASK_FOO__BAR_BAZ=123" and
@@ -223,7 +226,7 @@ def collect_env(prefix: str, env: Mapping[str, str] | None = None) -> dict:
     result: dict = {}
     # fake thread lock to use set functionality
     lock = nullcontext()
-    ConfigSet(result, lock, d)
+    ConfigSet(result, lock, deprecations or {}, d)
     return result
 
 
@@ -251,19 +254,49 @@ class ConfigSet:
         self,
         config: MutableMapping,
         lock: SerializableLock | contextlib.AbstractContextManager,
+        deprecations: MutableMapping[str, str | None],
         arg: Mapping | None = None,
         **kwargs,
     ):
         with lock:
             self.config = config
+            self.deprecations = deprecations
             self._record: list[tuple[str, tuple, Any]] = []
 
             if arg is not None:
                 for key, value in arg.items():
+                    key = self._check_deprecations(key)
                     self._assign(key.split("."), value, config)
             if kwargs:
                 for key, value in kwargs.items():
-                    self._assign(key.split("__"), value, config)
+                    key = key.replace("__", ".")
+                    key = self._check_deprecations(key)
+                    self._assign(key.split("."), value, config)
+
+    def _check_deprecations(self, key: str):
+        """Check if the provided value has been renamed or removed.
+
+        Parameters
+        ----------
+        key : str
+            The configuration key to check
+
+        Returns
+        -------
+        new: str
+            The proper key, whether the original (if no deprecation) or the aliased
+            value
+
+        """
+        if key in self.deprecations:
+            new = self.deprecations[key]
+            if new:
+                warnings.warn(f"Configuration key {key!r} has been deprecated. " f"Please use {new!r} instead")
+                return new
+            else:
+                raise ValueError(f"Configuration value {key!r} has been removed")
+        else:
+            return key
 
     def __enter__(self):
         return self.config
@@ -362,13 +395,14 @@ def expand_environment_variables(config):
 class Config:
     def __init__(
         self,
-        name,
-        defaults=None,
-        paths=None,
-        env=None,
-        env_var=None,
-        root_env_var=None,
-        env_prefix=None,
+        name: str,
+        defaults: list[Mapping[str, Any]] | None = None,
+        paths: list[str] | None = None,
+        env: Mapping[str, str] | None = None,
+        env_var: str | None = None,
+        root_env_var: str | None = None,
+        env_prefix: str | None = None,
+        deprecations: Mapping[str, str | None] | None = None,
     ):
         if root_env_var is None:
             root_env_var = f"{name.upper()}_ROOT_CONFIG"
@@ -391,6 +425,8 @@ class Config:
             paths.append(main_path)
         else:
             main_path = os.path.join(os.path.expanduser("~"), ".config", name)
+        if deprecations is None:
+            deprecations = {}
 
         # Remove duplicate paths while preserving ordering
         paths = list(reversed(list(dict.fromkeys(reversed(paths)))))
@@ -401,7 +437,9 @@ class Config:
         self.main_path = main_path
         self.paths = paths
         self.defaults = defaults or []
-        self.config = {}
+        self.deprecations = deprecations
+
+        self.config: MutableMapping[str, Any] = {}
         self.config_lock = SerializableLock()
         self.refresh()
 
@@ -626,7 +664,7 @@ class Config:
         donfig.Config.get
 
         """
-        return ConfigSet(self.config, self.config_lock, arg=arg, **kwargs)
+        return ConfigSet(self.config, self.config_lock, self.deprecations, arg=arg, **kwargs)
 
     def ensure_file(self, source: str, destination: str | None = None, comment: bool = True) -> None:
         """Copy file to default location if it does not already exist

@@ -178,6 +178,25 @@ or environment variables mentioned above.
     'worker': ...,
     'tls': ...}
 
+Deprecations
+~~~~~~~~~~~~
+
+Over the life of a project configuration keys may be changed or removed. Donfig
+allows specifying these changes through a ``deprecations`` dictionary. The key
+of this mapping is the old deprecated key name and the value is the new name or
+``None`` to declare that the old key has been removed.
+
+.. code-block:: python
+
+    >>> deprecations = {"old_key": "new_key", "invalid": None}
+    >>> config = Config("mypkg", deprecations=deprecations)
+    >>> config.set(old_key="test")
+    UserWarning: Configuration key "old_key" has been deprecated. Please use "new_key" instead.
+    >>> config.set(invalid="value")
+    Traceback (most recent call last):
+        ...
+    ValueError: Configuration value "invalid" has been removed
+    >>> config.set(another_key="another_value")
 
 Directly within Python
 ~~~~~~~~~~~~~~~~~~~~~~
