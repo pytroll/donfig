@@ -69,7 +69,8 @@ def canonical_name(k: str, config: Mapping[str, Any]) -> str:
 def update(
     old: MutableMapping[str, Any],
     new: Mapping[str, Any],
-    priority: Literal["old", "new"] = "new",
+    priority: Literal["old", "new", "new-defaults"] = "new",
+    defaults: Mapping | None = None,
 ) -> Mapping[str, Any]:
     """Update a nested dictionary with values from another
 
@@ -79,9 +80,12 @@ def update(
 
     Parameters
     ----------
-    priority: string {'old', 'new'}
+    priority: string {'old', 'new', 'new-defaults'}
         If new (default) then the new dictionary has preference.
         Otherwise the old dictionary does.
+        If 'new-defaults', a mapping should be given of the current defaults.
+        Only if a value in ``old`` matches the current default, it will be
+        updated with ``new``.
 
     Examples
     --------
@@ -95,6 +99,12 @@ def update(
     >>> update(a, b, priority='old')  # doctest: +SKIP
     {'x': 1, 'y': {'a': 2, 'b': 3}}
 
+    >>> d = {'x': 0, 'y': {'a': 2}}
+    >>> a = {'x': 1, 'y': {'a': 2}}
+    >>> b = {'x': 2, 'y': {'a': 3, 'b': 3}}
+    >>> update(a, b, priority='new-defaults', defaults=d)  # doctest: +SKIP
+    {'x': 1, 'y': {'a': 3, 'b': 3}}
+
     See Also
     --------
     donfig.config_obj.merge
@@ -106,9 +116,18 @@ def update(
         if isinstance(v, Mapping):
             if k not in old or old[k] is None:
                 old[k] = {}
-            update(old[k], v, priority=priority)
+            update(
+                old[k],
+                v,
+                priority=priority,
+                defaults=defaults.get(k) if defaults else None,
+            )
         else:
-            if priority == "new" or k not in old:
+            if (
+                priority == "new"
+                or k not in old
+                or (priority == "new-defaults" and defaults and k in defaults and defaults[k] == old[k])
+            ):
                 old[k] = v
 
     return old
@@ -561,12 +580,14 @@ class Config:
         It does two things:
 
         1.  Add the defaults to a collection to be used by refresh() later
-        2.  Updates the config with the new configuration
-            prioritizing older values over newer ones
+        2.  Updates the global config with the new configuration.
+            Old values are prioritized over new ones, unless the current value
+            is the old default, in which case it's updated to the new default.
 
         """
+        current_defaults = merge(*self.defaults)
         self.defaults.append(new)
-        update(self.config, new, priority="old")
+        update(self.config, new, priority="new-defaults", defaults=current_defaults)
 
     def to_dict(self):
         """Return dictionary copy of configuration.
