@@ -1,3 +1,20 @@
+## Version 0.8.0 (2023/07/13)
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 63](https://github.com/pytroll/donfig/pull/63) - Override old default values in `update_defaults`
+
+#### Features added
+
+* [PR 61](https://github.com/pytroll/donfig/pull/61) - Add key deprecation support
+* [PR 60](https://github.com/pytroll/donfig/pull/60) - Add configuration serialization and deserialization
+* [PR 59](https://github.com/pytroll/donfig/pull/59) - Port typing annotations and improve error messages
+
+In this release 6 pull requests were closed.
+
+
 ## Version 0.7.0 (2022/02/04)
 
 ### Issues Closed

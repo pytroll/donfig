@@ -6,7 +6,7 @@
 4. run `loghub` and update the `CHANGELOG.md` file:
 
    ```
-   loghub pytroll/donfig --token $LOGHUB_GITHUB_TOKEN -st v<previous version> -plg bug "Bugs fixed" -plg enhancement "Features added" -plg documentation "Documentation changes" -plg backwards-incompatibility "Backward incompatible changes" -plg refactor "Refactoring"
+   loghub pytroll/donfig --token $LOGHUB_GITHUB_TOKEN -st $(git tag --sort=-version:refname --list 'v*' | head -n 1) -plg bug "Bugs fixed" -plg enhancement "Features added" -plg documentation "Documentation changes" -plg backwards-incompatibility "Backward incompatible changes" -plg refactor "Refactoring"
    ```
 
 Don't forget to commit!
