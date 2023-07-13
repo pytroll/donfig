@@ -26,6 +26,7 @@ jobs:
 #          python-version: ${{ matrix.python-version }}
           environment-file: continuous_integration/environment.yaml
           cache-environment: true
+          init-shell: bash powershell
 
       - name: Install Donfig
         shell: bash -l {0}
