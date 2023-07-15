@@ -37,7 +37,7 @@ docs = [
 ]
 
 [tool.setuptools]
-packages = ["donfig"]
+packages = ["donfig", "donfig.tests"]
 include-package-data = true
 
 [tool.mypy]
