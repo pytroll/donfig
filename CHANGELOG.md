@@ -1,3 +1,14 @@
+## Version 0.8.1 (2023/07/14)
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 74](https://github.com/pytroll/donfig/pull/74) - Fix subpackages not being included in sdist
+
+In this release 1 pull request was closed.
+
+
 ## Version 0.8.0 (2023/07/13)
 
 ### Pull Requests Merged
