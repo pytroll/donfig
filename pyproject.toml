@@ -37,8 +37,10 @@ docs = [
 ]
 
 [tool.setuptools]
-packages = ["donfig", "donfig.tests"]
 include-package-data = true
+
+[tool.setuptools.packages]
+find = {}
 
 [tool.mypy]
 # Silence errors about Python 3.9-style delayed type annotations on Python 3.8
