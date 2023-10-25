@@ -1,3 +1,12 @@
+## Version 0.8.1.post0 (2023/10/25)
+
+### Issues Closed
+
+* [Issue 87](https://github.com/pytroll/donfig/issues/87) - Publish wheel
+
+In this release 1 issue was closed.
+
+
 ## Version 0.8.1 (2023/07/14)
 
 ### Pull Requests Merged
