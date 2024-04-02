@@ -5,13 +5,13 @@ repos:
         - id: isort
           language_version: python3
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.15.0
+    rev: v3.15.2
     hooks:
       - id: pyupgrade
         args:
           - --py38-plus
   -   repo: https://github.com/psf/black
-      rev: 24.1.1
+      rev: 24.3.0
       hooks:
         - id: black
           language_version: python3
@@ -21,7 +21,7 @@ repos:
         - id: flake8
           language_version: python3
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.8.0
+    rev: v1.9.0
     hooks:
       - id: mypy
         # Override default --ignore-missing-imports
