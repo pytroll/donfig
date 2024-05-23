@@ -1,3 +1,14 @@
+## Version 0.8.1.post1 (2024/05/23)
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 102](https://github.com/pytroll/donfig/pull/102) - No namespaces
+
+In this release 1 pull request was closed.
+
+
 ## Version 0.8.1.post0 (2023/10/25)
 
 ### Issues Closed
