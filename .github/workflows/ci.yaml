@@ -27,6 +27,7 @@ jobs:
           miniforge-version: latest
           channels: conda-forge
           channel-priority: strict
+          conda-remove-defaults: true
 
       - name: Install Donfig
         shell: bash -l {0}
