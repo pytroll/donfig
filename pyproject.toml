@@ -6,12 +6,12 @@ build-backend = "setuptools.build_meta"
 name = "donfig"
 description = "Python package for configuring a python package"
 maintainers = [{name = "David Hoese", email = "david.hoese@ssec.wisc.edu"}]
-license = {text = "MIT"}
+license = "MIT AND BSD-3-Clause"
+license-files = ["LICENSE.txt", "DASK_LICENSE.txt"]
 keywords = ["task-scheduling parallel numpy pandas pydata"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python",
     "Topic :: Scientific/Engineering",
