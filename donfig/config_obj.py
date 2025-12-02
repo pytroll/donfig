@@ -31,10 +31,10 @@ import pprint
 import site
 import sys
 import warnings
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from contextlib import nullcontext
 from copy import deepcopy
-from typing import Any, Literal, MutableMapping
+from typing import Any, Literal
 
 import yaml
 
