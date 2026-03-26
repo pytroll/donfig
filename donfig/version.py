@@ -16,11 +16,11 @@ import re
 import subprocess
 import sys
 from collections.abc import Callable
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 import functools
 
 
-def get_keywords() -> Dict[str, str]:
+def get_keywords() -> dict[str, str]:
     """Get the keywords needed to look up the version information."""
     # these strings will be replaced by git during git-archive.
     # setup.py/versioneer.py will grep for the variable names, so they must
@@ -80,18 +80,18 @@ def register_vcs_handler(vcs: str, method: str) -> Callable:  # decorator
 
 
 def run_command(
-    commands: List[str],
-    args: List[str],
-    cwd: Optional[str] = None,
+    commands: list[str],
+    args: list[str],
+    cwd: str | None = None,
     verbose: bool = False,
     hide_stderr: bool = False,
-    env: Optional[Dict[str, str]] = None,
-) -> Tuple[Optional[str], Optional[int]]:
+    env: dict[str, str] | None = None,
+) -> tuple[str | None, int | None]:
     """Call the given command(s)."""
     assert isinstance(commands, list)
     process = None
 
-    popen_kwargs: Dict[str, Any] = {}
+    popen_kwargs: dict[str, Any] = {}
     if sys.platform == "win32":
         # This hides the console window if pythonw.exe is used
         startupinfo = subprocess.STARTUPINFO()
@@ -120,7 +120,7 @@ def run_command(
             return None, None
     else:
         if verbose:
-            print("unable to find command, tried %s" % (commands,))
+            print(f"unable to find command, tried {commands}")
         return None, None
     stdout = process.communicate()[0].strip().decode()
     if process.returncode != 0:
@@ -135,7 +135,7 @@ def versions_from_parentdir(
     parentdir_prefix: str,
     root: str,
     verbose: bool,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Try to determine the version from the parent directory name.
 
     Source tarballs conventionally unpack into a directory that includes both
@@ -158,20 +158,20 @@ def versions_from_parentdir(
         root = os.path.dirname(root)  # up a level
 
     if verbose:
-        print("Tried directories %s but none started with prefix %s" % (str(rootdirs), parentdir_prefix))
+        print(f"Tried directories {str(rootdirs)} but none started with prefix {parentdir_prefix}")
     raise NotThisMethod("rootdir doesn't start with parentdir_prefix")
 
 
 @register_vcs_handler("git", "get_keywords")
-def git_get_keywords(versionfile_abs: str) -> Dict[str, str]:
+def git_get_keywords(versionfile_abs: str) -> dict[str, str]:
     """Extract version information from the given file."""
     # the code embedded in _version.py can just fetch the value of these
     # keywords. When used from setup.py, we don't want to import _version.py,
     # so we do it with a regexp instead. This function is not used from
     # _version.py.
-    keywords: Dict[str, str] = {}
+    keywords: dict[str, str] = {}
     try:
-        with open(versionfile_abs, "r") as fobj:
+        with open(versionfile_abs) as fobj:
             for line in fobj:
                 if line.strip().startswith("git_refnames ="):
                     mo = re.search(r'=\s*"(.*)"', line)
@@ -192,10 +192,10 @@ def git_get_keywords(versionfile_abs: str) -> Dict[str, str]:
 
 @register_vcs_handler("git", "keywords")
 def git_versions_from_keywords(
-    keywords: Dict[str, str],
+    keywords: dict[str, str],
     tag_prefix: str,
     verbose: bool,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Get version information from git keywords."""
     if "refnames" not in keywords:
         raise NotThisMethod("Short version file found")
@@ -266,7 +266,7 @@ def git_versions_from_keywords(
 
 
 @register_vcs_handler("git", "pieces_from_vcs")
-def git_pieces_from_vcs(tag_prefix: str, root: str, verbose: bool, runner: Callable = run_command) -> Dict[str, Any]:
+def git_pieces_from_vcs(tag_prefix: str, root: str, verbose: bool, runner: Callable = run_command) -> dict[str, Any]:
     """Get version from 'git describe' in the root of the source tree.
 
     This only gets called if the git-archive 'subst' keywords were *not*
@@ -304,7 +304,7 @@ def git_pieces_from_vcs(tag_prefix: str, root: str, verbose: bool, runner: Calla
         raise NotThisMethod("'git rev-parse' failed")
     full_out = full_out.strip()
 
-    pieces: Dict[str, Any] = {}
+    pieces: dict[str, Any] = {}
     pieces["long"] = full_out
     pieces["short"] = full_out[:7]  # maybe improved later
     pieces["error"] = None
@@ -367,7 +367,7 @@ def git_pieces_from_vcs(tag_prefix: str, root: str, verbose: bool, runner: Calla
             if verbose:
                 fmt = "tag '%s' doesn't start with prefix '%s'"
                 print(fmt % (full_tag, tag_prefix))
-            pieces["error"] = "tag '%s' doesn't start with prefix '%s'" % (full_tag, tag_prefix)
+            pieces["error"] = f"tag '{full_tag}' doesn't start with prefix '{tag_prefix}'"
             return pieces
         pieces["closest-tag"] = full_tag[len(tag_prefix) :]
 
@@ -393,14 +393,14 @@ def git_pieces_from_vcs(tag_prefix: str, root: str, verbose: bool, runner: Calla
     return pieces
 
 
-def plus_or_dot(pieces: Dict[str, Any]) -> str:
+def plus_or_dot(pieces: dict[str, Any]) -> str:
     """Return a + if we don't already have one, else return a ."""
     if "+" in pieces.get("closest-tag", ""):
         return "."
     return "+"
 
 
-def render_pep440(pieces: Dict[str, Any]) -> str:
+def render_pep440(pieces: dict[str, Any]) -> str:
     """Build up version string, with post-release "local version identifier".
 
     Our goal: TAG[+DISTANCE.gHEX[.dirty]] . Note that if you
@@ -424,7 +424,7 @@ def render_pep440(pieces: Dict[str, Any]) -> str:
     return rendered
 
 
-def render_pep440_branch(pieces: Dict[str, Any]) -> str:
+def render_pep440_branch(pieces: dict[str, Any]) -> str:
     """TAG[[.dev0]+DISTANCE.gHEX[.dirty]] .
 
     The ".dev0" means not master branch. Note that .dev0 sorts backwards
@@ -453,7 +453,7 @@ def render_pep440_branch(pieces: Dict[str, Any]) -> str:
     return rendered
 
 
-def pep440_split_post(ver: str) -> Tuple[str, Optional[int]]:
+def pep440_split_post(ver: str) -> tuple[str, int | None]:
     """Split pep440 version string at the post-release segment.
 
     Returns the release segments before the post-release and the
@@ -463,7 +463,7 @@ def pep440_split_post(ver: str) -> Tuple[str, Optional[int]]:
     return vc[0], int(vc[1] or 0) if len(vc) == 2 else None
 
 
-def render_pep440_pre(pieces: Dict[str, Any]) -> str:
+def render_pep440_pre(pieces: dict[str, Any]) -> str:
     """TAG[.postN.devDISTANCE] -- No -dirty.
 
     Exceptions:
@@ -487,7 +487,7 @@ def render_pep440_pre(pieces: Dict[str, Any]) -> str:
     return rendered
 
 
-def render_pep440_post(pieces: Dict[str, Any]) -> str:
+def render_pep440_post(pieces: dict[str, Any]) -> str:
     """TAG[.postDISTANCE[.dev0]+gHEX] .
 
     The ".dev0" means dirty. Note that .dev0 sorts backwards
@@ -514,7 +514,7 @@ def render_pep440_post(pieces: Dict[str, Any]) -> str:
     return rendered
 
 
-def render_pep440_post_branch(pieces: Dict[str, Any]) -> str:
+def render_pep440_post_branch(pieces: dict[str, Any]) -> str:
     """TAG[.postDISTANCE[.dev0]+gHEX[.dirty]] .
 
     The ".dev0" means not master branch.
@@ -543,7 +543,7 @@ def render_pep440_post_branch(pieces: Dict[str, Any]) -> str:
     return rendered
 
 
-def render_pep440_old(pieces: Dict[str, Any]) -> str:
+def render_pep440_old(pieces: dict[str, Any]) -> str:
     """TAG[.postDISTANCE[.dev0]] .
 
     The ".dev0" means dirty.
@@ -565,7 +565,7 @@ def render_pep440_old(pieces: Dict[str, Any]) -> str:
     return rendered
 
 
-def render_git_describe(pieces: Dict[str, Any]) -> str:
+def render_git_describe(pieces: dict[str, Any]) -> str:
     """TAG[-DISTANCE-gHEX][-dirty].
 
     Like 'git describe --tags --dirty --always'.
@@ -585,7 +585,7 @@ def render_git_describe(pieces: Dict[str, Any]) -> str:
     return rendered
 
 
-def render_git_describe_long(pieces: Dict[str, Any]) -> str:
+def render_git_describe_long(pieces: dict[str, Any]) -> str:
     """TAG-DISTANCE-gHEX[-dirty].
 
     Like 'git describe --tags --dirty --always -long'.
@@ -605,7 +605,7 @@ def render_git_describe_long(pieces: Dict[str, Any]) -> str:
     return rendered
 
 
-def render(pieces: Dict[str, Any], style: str) -> Dict[str, Any]:
+def render(pieces: dict[str, Any], style: str) -> dict[str, Any]:
     """Render the given version pieces into the requested style."""
     if pieces["error"]:
         return {
@@ -647,7 +647,7 @@ def render(pieces: Dict[str, Any], style: str) -> Dict[str, Any]:
     }
 
 
-def get_versions() -> Dict[str, Any]:
+def get_versions() -> dict[str, Any]:
     """Get version information or return default if unable to do so."""
     # I am in _version.py, which lives at ROOT/VERSIONFILE_SOURCE. If we have
     # __file__, we can work backwards from there to the root. Some
