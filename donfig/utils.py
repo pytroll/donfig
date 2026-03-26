@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (c) 2018 Donfig Developers
+# Copyright (c) 2018- Donfig Developers
 # Copyright (c) 2014-2018, Anaconda, Inc. and contributors
 import os
 import shutil
