@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (c) 2022 Donfig Developers
+# Copyright (c) 2022- Donfig Developers
 # Copyright (c) 2014-2022, Anaconda, Inc. and contributors
 """Config synchronization locks ported from upstream dask.
 
