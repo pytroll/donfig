@@ -47,7 +47,7 @@ jobs:
         if: runner.os == 'Windows'
 
       - name: Upload unittest coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           flags: unittests
           file: ./coverage.xml
