@@ -726,7 +726,7 @@ class Config:
             pass
 
     def serialize(self) -> str:
-        """Serialize conifg data into a string.
+        """Serialize config data into a string.
 
         See :func:`serialize` for more information.
 
