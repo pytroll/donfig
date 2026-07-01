@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=62.6", "versioneer[toml]==0.28"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
 
 [project]
 name = "donfig"
@@ -36,11 +36,55 @@ docs = [
     "cloudpickle",
 ]
 
-[tool.setuptools]
-include-package-data = true
+# Local development dependency groups (PEP 735). Preferred over extras for tools
+# like uv/hatch; the extras above are retained for `pip install donfig[docs]`
+# (e.g. Read the Docs).
+[dependency-groups]
+test = ["pytest", "cloudpickle"]
+docs = ["sphinx>=4.0.0", "numpydoc", "pytest", "cloudpickle"]
+dev = [{ include-group = "test" }]
 
-[tool.setuptools.packages]
-find = { namespaces = false }
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.targets.wheel]
+packages = ["donfig"]
+
+# `hatch run test:run` — an easy task runner for new contributors.
+[tool.hatch.envs.test]
+features = ["test"]
+
+[tool.hatch.envs.test.scripts]
+run = "pytest {args:--cov=donfig donfig}"
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+testpaths = ["donfig"]
+addopts = ["-ra", "--strict-config", "--strict-markers"]
+xfail_strict = true
+log_cli_level = "INFO"
+log_level = "INFO"
+filterwarnings = ["error"]
+
+[tool.repo-review]
+ignore = [
+    # donfig ships docs under `doc/` and keeps tests inside the package
+    # (`donfig/tests/`) rather than a src-layout; both are intentional.
+    "PY004",
+    "PY005",
+    # MyPy strictness is tightened in a separate typing PR, not here.
+    "MY101",
+    "MY102",
+    "MY104",
+    "MY105",
+    "MY106",
+    # donfig lints with isort + black + flake8 + pyupgrade; migrating to Ruff and
+    # the extra doc/markdown formatters is out of scope for this packaging change.
+    "RF001",
+    "PC111",
+    "PC170",
+    "PC180",
+]
 
 [tool.mypy]
 python_version = "3.10"
@@ -64,7 +108,6 @@ exclude = '''
   \.git
   | build
   | dist
-  | donfig/version\.py
 )
 
 '''
@@ -76,14 +119,3 @@ skip_gitignore = true
 force_to_top = ["true"]
 default_section = "THIRDPARTY"
 known_first_party = ["donfig"]
-skip = ["donfig/version.py"]
-
-[tool.versioneer]
-VCS = "git"
-style = "pep440"
-versionfile_source = "donfig/version.py"
-versionfile_build = "donfig/version.py"
-tag_prefix = "v"
-
-[tool.coverage.run]
-omit = ["donfig/version.py", "versioneer.py"]

@@ -1,4 +1,14 @@
 repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.4.2
+    hooks:
+      - id: codespell
   -   repo: https://github.com/pycqa/isort
       rev: 9.0.0a3
       hooks:
@@ -35,9 +45,15 @@ repos:
           # Typed libraries
           - numpy
           - pytest
+  - repo: https://github.com/scientific-python/cookie
+    rev: 2026.04.04
+    hooks:
+      - id: sp-repo-review
 
 ci:
   # To trigger manually, comment on a pull request with "pre-commit.ci autofix"
   autofix_prs: false
+  autofix_commit_msg: "style: pre-commit.ci auto fixes [...]"
+  autoupdate_commit_msg: "chore: update pre-commit hooks"
   autoupdate_schedule: "monthly"
   skip: []
