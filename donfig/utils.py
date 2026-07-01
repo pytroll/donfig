@@ -4,11 +4,12 @@
 import os
 import shutil
 import tempfile
+from collections.abc import Iterator
 from contextlib import contextmanager, suppress
 
 
 @contextmanager
-def tmpfile(extension="", dir=None):
+def tmpfile(extension: str = "", dir: str | None = None) -> Iterator[str]:
     extension = "." + extension.lstrip(".")
     handle, filename = tempfile.mkstemp(extension, dir=dir)
     os.close(handle)

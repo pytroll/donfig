@@ -11,6 +11,7 @@ There are no guarantees that this module will exist in the future.
 
 import uuid
 from threading import Lock
+from typing import Any
 from weakref import WeakValueDictionary
 
 
@@ -42,9 +43,9 @@ class SerializableLock:
     The creation of locks is itself not threadsafe.
     """
 
-    _locks: WeakValueDictionary = WeakValueDictionary()
+    _locks: WeakValueDictionary[str, Lock] = WeakValueDictionary()
 
-    def __init__(self, token=None):
+    def __init__(self, token: str | None = None) -> None:
         self.token = token or str(uuid.uuid4())
         if self.token in SerializableLock._locks:
             self.lock = SerializableLock._locks[self.token]
@@ -52,28 +53,28 @@ class SerializableLock:
             self.lock = Lock()
             SerializableLock._locks[self.token] = self.lock
 
-    def acquire(self, *args, **kwargs):
+    def acquire(self, *args: Any, **kwargs: Any) -> bool:
         return self.lock.acquire(*args, **kwargs)
 
-    def release(self, *args, **kwargs):
+    def release(self, *args: Any, **kwargs: Any) -> None:
         return self.lock.release(*args, **kwargs)
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         self.lock.__enter__()
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: Any) -> None:
         self.lock.__exit__(*args)
 
-    def locked(self):
+    def locked(self) -> bool:
         return self.lock.locked()
 
-    def __getstate__(self):
+    def __getstate__(self) -> str:
         return self.token
 
-    def __setstate__(self, token):
-        self.__init__(token)
+    def __setstate__(self, token: str) -> None:
+        self.__init__(token)  # type: ignore[misc]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"<{self.__class__.__name__}: {self.token}>"
 
     __repr__ = __str__

@@ -15,6 +15,7 @@ import warnings
 from collections.abc import Mapping, MutableMapping, Sequence
 from contextlib import nullcontext
 from copy import deepcopy
+from types import TracebackType
 from typing import Any, Literal
 
 import yaml
@@ -51,8 +52,8 @@ def update(
     old: MutableMapping[str, Any],
     new: Mapping[str, Any],
     priority: Literal["old", "new", "new-defaults"] = "new",
-    defaults: Mapping | None = None,
-) -> Mapping[str, Any]:
+    defaults: Mapping[str, Any] | None = None,
+) -> MutableMapping[str, Any]:
     """Update a nested dictionary with values from another
 
     This is like dict.update except that it smoothly merges nested values
@@ -114,7 +115,7 @@ def update(
     return old
 
 
-def merge(*dicts: Mapping) -> dict:
+def merge(*dicts: Mapping[str, Any]) -> dict[str, Any]:
     """Update a sequence of nested dictionaries
 
     This prefers the values in the latter dictionaries to those in the former
@@ -131,13 +132,13 @@ def merge(*dicts: Mapping) -> dict:
     donfig.config_obj.update
 
     """
-    result: dict = {}
+    result: dict[str, Any] = {}
     for d in dicts:
         update(result, d)
     return result
 
 
-def collect_yaml(paths: Sequence[str]) -> list[dict]:
+def collect_yaml(paths: Sequence[str]) -> list[dict[str, Any]]:
     """Collect configuration from yaml files
 
     This searches through a list of paths, expands to find all yaml or json
@@ -174,7 +175,7 @@ def collect_yaml(paths: Sequence[str]) -> list[dict]:
     return configs
 
 
-def _load_config_file(path: str) -> dict | None:
+def _load_config_file(path: str) -> dict[str, Any] | None:
     try:
         with open(path) as f:
             config = yaml.safe_load(f.read())
@@ -193,7 +194,7 @@ def _load_config_file(path: str) -> dict | None:
 
 def collect_env(
     prefix: str, env: Mapping[str, str] | None = None, deprecations: MutableMapping[str, str | None] | None = None
-) -> dict:
+) -> dict[str, Any]:
     """Collect config from environment variables
 
     This grabs environment variables of the form "DASK_FOO__BAR_BAZ=123" and
@@ -223,7 +224,7 @@ def collect_env(
             except (SyntaxError, ValueError):
                 d[varname] = value
 
-    result: dict = {}
+    result: dict[str, Any] = {}
     # fake thread lock to use set functionality
     lock = nullcontext()
     ConfigSet(result, lock, deprecations or {}, d)
@@ -252,16 +253,16 @@ class ConfigSet:
 
     def __init__(
         self,
-        config: MutableMapping,
-        lock: SerializableLock | contextlib.AbstractContextManager,
-        deprecations: MutableMapping[str, str | None],
-        arg: Mapping | None = None,
-        **kwargs,
-    ):
+        config: MutableMapping[str, Any],
+        lock: SerializableLock | contextlib.AbstractContextManager[Any],
+        deprecations: Mapping[str, str | None],
+        arg: Mapping[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> None:
         with lock:
             self.config = config
             self.deprecations = deprecations
-            self._record: list[tuple[str, tuple, Any]] = []
+            self._record: list[tuple[str, tuple[str, ...], Any]] = []
 
             if arg is not None:
                 for key, value in arg.items():
@@ -273,7 +274,7 @@ class ConfigSet:
                     key = self._check_deprecations(key)
                     self._assign(key.split("."), value, config)
 
-    def _check_deprecations(self, key: str):
+    def _check_deprecations(self, key: str) -> str:
         """Check if the provided value has been renamed or removed.
 
         Parameters
@@ -298,10 +299,15 @@ class ConfigSet:
         else:
             return key
 
-    def __enter__(self):
+    def __enter__(self) -> MutableMapping[str, Any]:
         return self.config
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         for op, path, value in reversed(self._record):
             d = self.config
             if op == "replace":
@@ -321,7 +327,7 @@ class ConfigSet:
         self,
         keys: Sequence[str],
         value: Any,
-        d: MutableMapping,
+        d: MutableMapping[str, Any],
         path: tuple[str, ...] = (),
         record: bool = True,
     ) -> None:
@@ -361,7 +367,7 @@ class ConfigSet:
             self._assign(keys[1:], value, d[key], path, record=record)
 
 
-def expand_environment_variables(config):
+def expand_environment_variables(config: Any) -> Any:
     """Expand environment variables in a nested config dictionary
 
     This function will recursively search through any nested dictionaries
@@ -396,7 +402,7 @@ class Config:
     def __init__(
         self,
         name: str,
-        defaults: list[Mapping[str, Any]] | None = None,
+        defaults: Sequence[Mapping[str, Any]] | None = None,
         paths: list[str] | None = None,
         env: Mapping[str, str] | None = None,
         env_var: str | None = None,
@@ -436,27 +442,32 @@ class Config:
         self.env = env
         self.main_path = main_path
         self.paths = paths
-        self.defaults = defaults or []
+        # Preserve the historical contract that a caller-supplied ``defaults``
+        # list is aliased (``update_defaults`` appends to it in place); only copy
+        # when a non-list Sequence is passed.
+        self.defaults: list[Mapping[str, Any]] = (
+            defaults if isinstance(defaults, list) else list(defaults) if defaults else []
+        )
         self.deprecations = deprecations
 
         self.config: MutableMapping[str, Any] = {}
         self.config_lock = SerializableLock()
         self.refresh()
 
-    def __contains__(self, item):
+    def __contains__(self, item: Any) -> bool:
         try:
             self[item]
             return True
         except (TypeError, IndexError, KeyError):
             return False
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: str) -> Any:
         return self.get(item)
 
-    def pprint(self, **kwargs):
+    def pprint(self, **kwargs: Any) -> None:
         return pprint.pprint(self.config, **kwargs)
 
-    def collect(self, paths: list[str] | None = None, env: Mapping[str, str] | None = None) -> dict:
+    def collect(self, paths: list[str] | None = None, env: Mapping[str, str] | None = None) -> dict[str, Any]:
         """Collect configuration from paths and environment variables
 
         Parameters
@@ -482,16 +493,16 @@ class Config:
             paths = self.paths
         if env is None:
             env = self.env
-        configs = []
+        configs: list[Mapping[str, Any]] = []
 
-        if yaml:
-            configs.extend(collect_yaml(paths=paths))
+        # yaml is a hard dependency, so its loader is always available.
+        configs.extend(collect_yaml(paths=paths))
 
         configs.append(collect_env(self.env_prefix, env=env))
 
         return merge(*configs)
 
-    def refresh(self, **kwargs) -> None:
+    def refresh(self, **kwargs: Any) -> None:
         """Update configuration by re-reading yaml files and env variables.
 
         This goes through the following stages:
@@ -555,7 +566,7 @@ class Config:
                     raise
         return result
 
-    def update_defaults(self, new: Mapping) -> None:
+    def update_defaults(self, new: Mapping[str, Any]) -> None:
         """Add a new set of defaults to the configuration
 
         It does two things:
@@ -570,7 +581,7 @@ class Config:
         self.defaults.append(new)
         update(self.config, new, priority="new-defaults", defaults=current_defaults)
 
-    def to_dict(self):
+    def to_dict(self) -> MutableMapping[str, Any]:
         """Return dictionary copy of configuration.
 
         .. warning::
@@ -582,19 +593,19 @@ class Config:
         """
         return deepcopy(self.config)
 
-    def clear(self):
+    def clear(self) -> None:
         """Clear all existing configuration."""
         self.config.clear()
 
-    def merge(self, *dicts):
+    def merge(self, *dicts: Mapping[str, Any]) -> None:
         """Merge this configuration with multiple dictionaries.
 
         See :func:`~donfig.config_obj.merge` for more information.
 
         """
-        self.config = merge(self.config, dicts)
+        self.config = merge(self.config, *dicts)
 
-    def update(self, new, priority="new"):
+    def update(self, new: Mapping[str, Any], priority: Literal["old", "new", "new-defaults"] = "new") -> None:
         """Update the internal configuration dictionary with `new`.
 
         See :func:`~donfig.config_obj.update` for more information.
@@ -610,7 +621,7 @@ class Config:
         """
         self.config = expand_environment_variables(self.config)
 
-    def rename(self, aliases: Mapping) -> None:
+    def rename(self, aliases: Mapping[str, str]) -> None:
         """Rename old keys to new keys
 
         This helps migrate older configuration versions over time
@@ -629,7 +640,7 @@ class Config:
 
         self.set(new)
 
-    def set(self, arg=None, **kwargs):
+    def set(self, arg: Mapping[str, Any] | None = None, **kwargs: Any) -> ConfigSet:
         """Set configuration values within a context manager.
 
         Parameters
