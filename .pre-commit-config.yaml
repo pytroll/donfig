@@ -43,7 +43,6 @@ repos:
           - types-PyYAML
           - types-setuptools
           # Typed libraries
-          - numpy
           - pytest
   - repo: https://github.com/scientific-python/cookie
     rev: 2026.04.04
