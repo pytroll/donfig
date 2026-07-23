@@ -101,6 +101,12 @@ warn_unused_ignores = true
 warn_unreachable = true
 warn_unused_configs = true
 
+[tool.codespell]
+# Vendored, minified js-yaml bundle used by the docs config converter — not prose.
+skip = "doc/_static/js-yaml.min.js"
+# `THIRDPARTY` is a required isort section keyword, not a misspelling.
+ignore-words-list = "thirdparty"
+
 [tool.black]
 line-length = 120
 exclude = '''
