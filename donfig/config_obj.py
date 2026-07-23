@@ -444,9 +444,9 @@ class Config:
         self.env = env
         self.main_path = main_path
         self.paths = paths
-        # Preserve the historical contract that a caller-supplied ``defaults``
-        # list is aliased (``update_defaults`` appends to it in place); only copy
-        # when a non-list Sequence is passed.
+        # A caller-supplied list (even an empty one) is aliased, not copied, so
+        # that ``update_defaults`` appends to it in place; any other Sequence is
+        # copied into a new list.
         self.defaults: list[Mapping[str, Any]] = (
             defaults if isinstance(defaults, list) else list(defaults) if defaults else []
         )

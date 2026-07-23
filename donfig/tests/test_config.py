@@ -100,6 +100,14 @@ def test_merge() -> None:
     assert c == expected
 
 
+def test_config_merge() -> None:
+    config = Config(CONFIG_NAME)
+    config.clear()
+    config.update({"x": 1, "y": {"a": 1}})
+    config.merge({"y": {"b": 2}}, {"z": 3})
+    assert config.to_dict() == {"x": 1, "y": {"a": 1, "b": 2}, "z": 3}
+
+
 def test_collect_yaml_paths() -> None:
     a = {"x": 1, "y": {"a": 1}}
     b = {"x": 2, "z": 3, "y": {"b": 2}}
