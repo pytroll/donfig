@@ -594,7 +594,7 @@ class Config:
         See :func:`~donfig.config_obj.merge` for more information.
 
         """
-        self.config = merge(self.config, dicts)
+        self.config = merge(self.config, *dicts)
 
     def update(self, new, priority="new"):
         """Update the internal configuration dictionary with `new`.
