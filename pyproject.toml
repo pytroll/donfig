@@ -78,9 +78,8 @@ ignore = [
     "MY104",
     "MY105",
     "MY106",
-    # donfig lints with isort + black + flake8 + pyupgrade; migrating to Ruff and
-    # the extra doc/markdown formatters is out of scope for this packaging change.
-    "RF001",
+    # Adding the doc/markdown formatters (blacken-docs etc.) is out of scope for
+    # this packaging change.
     "PC111",
     "PC170",
     "PC180",
@@ -107,21 +106,22 @@ skip = "doc/_static/js-yaml.min.js"
 # `THIRDPARTY` is a required isort section keyword, not a misspelling.
 ignore-words-list = "thirdparty"
 
-[tool.black]
+[tool.ruff]
 line-length = 120
-exclude = '''
-(
-  \.git
-  | build
-  | dist
-)
 
-'''
+[tool.ruff.lint]
+# E/W/F replace flake8, I replaces isort, UP replaces pyupgrade (the target
+# version is inferred from requires-python), and B adds flake8-bugbear.
+select = ["B", "E", "F", "I", "UP", "W"]
+ignore = [
+    "E721", # type comparisons
+    "E731", # lambda assignment
+    "E741", # ambiguous variable names
+]
 
-[tool.isort]
-sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
-profile = "black"
-skip_gitignore = true
-force_to_top = ["true"]
-default_section = "THIRDPARTY"
-known_first_party = ["donfig"]
+[tool.ruff.lint.per-file-ignores]
+# flake8 excluded __init__.py entirely; keep its re-export/import-order latitude.
+"**/__init__.py" = ["E402", "F401", "F811"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["donfig"]
