@@ -9,6 +9,21 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  typecheck:
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          # hatch-vcs needs the full history to resolve the version when uv
+          # builds the project environment
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Run mypy
+        # uv is preinstalled on GitHub-hosted runners
+        run: uv run --group typecheck mypy donfig
+
   test:
     runs-on: ${{ matrix.os }}
     strategy:
