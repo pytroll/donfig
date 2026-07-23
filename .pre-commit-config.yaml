@@ -1,42 +1,43 @@
 repos:
-  -   repo: https://github.com/pycqa/isort
-      rev: 9.0.0a3
-      hooks:
-        - id: isort
-          language_version: python3
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v3.21.2
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
     hooks:
-      - id: pyupgrade
-        args:
-          - --py310-plus
-  -   repo: https://github.com/psf/black-pre-commit-mirror
-      rev: 26.5.1
-      hooks:
-        - id: black
-          language_version: python3
-  -   repo: https://github.com/PyCQA/flake8
-      rev: 7.3.0
-      hooks:
-        - id: flake8
-          language_version: python3
-  # mypy runs via `uv run --group typecheck`, so the type stubs live in the
-  # `typecheck` dependency group (pyproject.toml) rather than being duplicated
-  # here as additional_dependencies.
-  - repo: local
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.4.2
+    hooks:
+      - id: codespell
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.21
+    hooks:
+      - id: ruff-check
+        args: [--fix, --show-fixes]
+      - id: ruff-format
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v2.1.0
     hooks:
       - id: mypy
-        name: mypy
-        language: system
-        entry: uv run --group typecheck mypy
-        pass_filenames: false
-        always_run: true
-        types_or: [python, pyi]
+        # Override default --ignore-missing-imports
+        # Use pyproject.toml if possible instead of adding command line parameters here
+        args: [ --warn-unused-configs ]
+        additional_dependencies:
+          # Type stubs
+          - types-docutils
+          - types-PyYAML
+          - types-setuptools
+          # Typed libraries
+          - pytest
+  - repo: https://github.com/scientific-python/cookie
+    rev: 2026.04.04
+    hooks:
+      - id: sp-repo-review
 
 ci:
   # To trigger manually, comment on a pull request with "pre-commit.ci autofix"
   autofix_prs: false
+  autofix_commit_msg: "style: pre-commit.ci auto fixes [...]"
+  autoupdate_commit_msg: "chore: update pre-commit hooks"
   autoupdate_schedule: "monthly"
-  # mypy is a `language: system` hook needing uv + the repo's dependency
-  # groups, which are unavailable on pre-commit.ci runners; run it in CI instead.
-  skip: [mypy]
+  skip: []

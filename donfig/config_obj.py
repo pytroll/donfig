@@ -183,7 +183,7 @@ def _load_config_file(path: str) -> dict[str, Any] | None:
         # Ignore permission errors
         return None
     except Exception as exc:
-        raise ValueError(f"A config file at {path!r} is malformed, original error " f"message:\n\n{exc}") from None
+        raise ValueError(f"A config file at {path!r} is malformed, original error message:\n\n{exc}") from None
     if config is not None and not isinstance(config, dict):
         raise ValueError(
             f"A config file at {path!r} is malformed - config files must have "
@@ -292,7 +292,9 @@ class ConfigSet:
         if key in self.deprecations:
             new = self.deprecations[key]
             if new:
-                warnings.warn(f"Configuration key {key!r} has been deprecated. " f"Please use {new!r} instead")
+                warnings.warn(
+                    f"Configuration key {key!r} has been deprecated. Please use {new!r} instead", stacklevel=2
+                )
                 return new
             else:
                 raise ValueError(f"Configuration value {key!r} has been removed")
@@ -719,7 +721,7 @@ class Config:
                 # Atomically create destination.  Parallel testing discovered
                 # a race condition where a process can be busy creating the
                 # destination while another process reads an empty config file.
-                tmp = "%s.tmp.%d" % (destination, os.getpid())
+                tmp = f"{destination}.tmp.{os.getpid()}"
                 with open(source) as f:
                     lines = list(f)
 
@@ -737,7 +739,7 @@ class Config:
             pass
 
     def serialize(self) -> str:
-        """Serialize conifg data into a string.
+        """Serialize config data into a string.
 
         See :func:`serialize` for more information.
 
