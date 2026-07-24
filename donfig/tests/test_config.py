@@ -9,7 +9,7 @@ import stat
 import subprocess
 import sys
 from collections import OrderedDict
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from typing import Any
 
@@ -72,7 +72,7 @@ def test_update_new_defaults() -> None:
 
 
 def test_update_defaults() -> None:
-    defaults = [
+    defaults: list[Mapping[str, Any]] = [
         {"a": 1, "b": {"c": 1}},
         {"a": 2, "b": {"d": 2}},
     ]
@@ -449,7 +449,7 @@ def test_rename() -> None:
 
 
 def test_refresh() -> None:
-    defaults: list[dict[str, Any]] = []
+    defaults: list[Mapping[str, Any]] = []
     config = Config(CONFIG_NAME, defaults=defaults)
 
     config.update_defaults({"a": 1})
