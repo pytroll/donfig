@@ -399,7 +399,7 @@ class Config:
         self,
         name: str,
         defaults: Sequence[Mapping[str, Any]] | None = None,
-        paths: Sequence[str] | None = None,
+        paths: list[str] | None = None,
         env: Mapping[str, str] | None = None,
         env_var: str | None = None,
         root_env_var: str | None = None,
@@ -417,8 +417,6 @@ class Config:
             ]
         else:
             # copy so the env-var append below never mutates the caller's sequence
-            if isinstance(paths, str):
-                raise TypeError("paths must be a sequence of strings, not a single string")
             paths = list(paths)
         if env_prefix is None:
             env_prefix = f"{name.upper()}_"
@@ -462,7 +460,7 @@ class Config:
     def pprint(self, **kwargs):
         return pprint.pprint(self.config, **kwargs)
 
-    def collect(self, paths: Sequence[str] | None = None, env: Mapping[str, str] | None = None) -> dict:
+    def collect(self, paths: list[str] | None = None, env: Mapping[str, str] | None = None) -> dict:
         """Collect configuration from paths and environment variables
 
         Parameters
