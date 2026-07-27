@@ -78,12 +78,24 @@ def test_update_defaults():
     new = {"a": 0, "b": {"c": 0, "d": 0}, "new-extra": 0}
     config.update_defaults(new)
 
-    assert defaults == [
+    assert config.defaults == [
         {"a": 1, "b": {"c": 1}},
         {"a": 2, "b": {"d": 2}},
         {"a": 0, "b": {"c": 0, "d": 0}, "new-extra": 0},
     ]
+    # the caller's list is copied on init, not aliased
+    assert defaults == [
+        {"a": 1, "b": {"c": 1}},
+        {"a": 2, "b": {"d": 2}},
+    ]
     assert config.to_dict() == {"a": 0, "b": {"c": 0, "d": 3}, "extra": 0, "new-extra": 0}
+
+
+def test_defaults_accepts_any_sequence():
+    config = Config(CONFIG_NAME, defaults=({"a": 1}, {"b": 2}))
+    assert config.to_dict() == {"a": 1, "b": 2}
+    config.update_defaults({"c": 3})
+    assert config.get("c") == 3
 
 
 def test_merge():
