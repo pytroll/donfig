@@ -49,11 +49,11 @@ def canonical_name(k: str, config: Mapping[str, Any]) -> str:
 
 
 def update(
-    old: MutableMapping[str, Any],
+    old: dict[str, Any],
     new: Mapping[str, Any],
     priority: Literal["old", "new", "new-defaults"] = "new",
     defaults: Mapping[str, Any] | None = None,
-) -> MutableMapping[str, Any]:
+) -> dict[str, Any]:
     """Update a nested dictionary with values from another
 
     This is like dict.update except that it smoothly merges nested values
@@ -193,7 +193,7 @@ def _load_config_file(path: str) -> dict[str, Any] | None:
 
 
 def collect_env(
-    prefix: str, env: Mapping[str, str] | None = None, deprecations: MutableMapping[str, str | None] | None = None
+    prefix: str, env: Mapping[str, str] | None = None, deprecations: Mapping[str, str | None] | None = None
 ) -> dict[str, Any]:
     """Collect config from environment variables
 
@@ -262,7 +262,7 @@ class ConfigSet:
         with lock:
             self.config = config
             self.deprecations = deprecations
-            self._record: list[tuple[str, tuple[str, ...], Any]] = []
+            self._record: list[tuple[Literal["replace", "insert"], tuple[str, ...], Any]] = []
 
             if arg is not None:
                 for key, value in arg.items():
@@ -447,7 +447,7 @@ class Config:
         self.defaults: list[Mapping[str, Any]] = list(defaults) if defaults is not None else []
         self.deprecations = deprecations
 
-        self.config: MutableMapping[str, Any] = {}
+        self.config: dict[str, Any] = {}
         self.config_lock = SerializableLock()
         self.refresh()
 
@@ -578,7 +578,7 @@ class Config:
         self.defaults.append(new)
         update(self.config, new, priority="new-defaults", defaults=current_defaults)
 
-    def to_dict(self) -> MutableMapping[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Return dictionary copy of configuration.
 
         .. warning::
