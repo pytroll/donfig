@@ -12,7 +12,7 @@ import pprint
 import site
 import sys
 import warnings
-from collections.abc import Mapping, MutableMapping, MutableSequence, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from contextlib import nullcontext
 from copy import deepcopy
 from types import TracebackType
@@ -404,7 +404,7 @@ class Config:
     def __init__(
         self,
         name: str,
-        defaults: MutableSequence[Mapping[str, Any]] | None = None,
+        defaults: Sequence[Mapping[str, Any]] | None = None,
         paths: list[str] | None = None,
         env: Mapping[str, str] | None = None,
         env_var: str | None = None,
@@ -444,9 +444,7 @@ class Config:
         self.env = env
         self.main_path = main_path
         self.paths = paths
-        # Aliased, not copied: ``update_defaults`` appends into the
-        # caller-supplied sequence in place.
-        self.defaults: MutableSequence[Mapping[str, Any]] = defaults if defaults is not None else []
+        self.defaults: list[Mapping[str, Any]] = list(defaults) if defaults is not None else []
         self.deprecations = deprecations
 
         self.config: MutableMapping[str, Any] = {}
