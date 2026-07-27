@@ -606,6 +606,21 @@ def test__get_paths(monkeypatch):
         assert len(paths) == len(set(paths))
 
 
+def test_paths_not_mutated(monkeypatch):
+    monkeypatch.setenv("MYPKG_CONFIG", "foo-bar")
+    paths = ["/etc/mypkg"]
+    config = Config("mypkg", paths=paths)
+    assert config.paths == ["/etc/mypkg", "foo-bar"]
+    # the caller's list is copied on init, not aliased
+    assert paths == ["/etc/mypkg"]
+
+
+def test_paths_accepts_any_sequence(monkeypatch):
+    monkeypatch.setenv("MYPKG_CONFIG", "foo-bar")
+    config = Config("mypkg", paths=("/etc/mypkg",))
+    assert config.paths == ["/etc/mypkg", "foo-bar"]
+
+
 def test_serialization():
     config = Config(CONFIG_NAME)
     config.set(one_key="one_value")
