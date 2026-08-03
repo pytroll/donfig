@@ -610,7 +610,7 @@ def test__get_paths(monkeypatch: pytest.MonkeyPatch) -> None:
         assert len(paths) == len(set(paths))
 
 
-def test_paths_not_mutated(monkeypatch):
+def test_paths_not_mutated(monkeypatch) -> None:
     monkeypatch.setenv("MYPKG_CONFIG", "foo-bar")
     paths = ["/etc/mypkg"]
     config = Config("mypkg", paths=paths)
@@ -619,7 +619,7 @@ def test_paths_not_mutated(monkeypatch):
     assert paths == ["/etc/mypkg"]
 
 
-def test_paths_accepts_any_sequence(monkeypatch):
+def test_paths_accepts_any_sequence(monkeypatch) -> None:
     monkeypatch.setenv("MYPKG_CONFIG", "foo-bar")
     config = Config("mypkg", paths=("/etc/mypkg",))
     assert config.paths == ["/etc/mypkg", "foo-bar"]
