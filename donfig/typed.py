@@ -31,7 +31,10 @@ import warnings
 from collections.abc import Callable, Mapping
 from contextvars import ContextVar, Token
 from dataclasses import fields, is_dataclass, replace
-from typing import Any, Generic, Literal, Self, TypeVar, overload
+from typing import TYPE_CHECKING, Any, Generic, Literal, TypeVar, overload
+
+if TYPE_CHECKING:
+    from typing_extensions import Self
 
 #: A frozen-dataclass config snapshot type (the application's root schema).
 ConfigT = TypeVar("ConfigT")
@@ -271,9 +274,7 @@ class _ConfigSet:
     context (thread / async task) and unwound on ``__exit__``.
     """
 
-    def __init__(
-        self, manager: TypedConfigManager[Any], prev_base: object, new: object
-    ) -> None:
+    def __init__(self, manager: TypedConfigManager[Any], prev_base: object, new: object) -> None:
         self._manager = manager
         self._prev_base = prev_base
         self._new = new

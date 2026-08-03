@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=62.6", "versioneer[toml]==0.28"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
 
 [project]
 name = "donfig"
@@ -36,11 +36,60 @@ docs = [
     "cloudpickle",
 ]
 
-[tool.setuptools]
-include-package-data = true
+# Local development dependency groups (PEP 735). Preferred over extras for tools
+# like uv/hatch; the extras above are retained for `pip install donfig[docs]`
+# (e.g. Read the Docs).
+[dependency-groups]
+test = ["pytest", "cloudpickle"]
+docs = ["sphinx>=4.0.0", "numpydoc", "pytest", "cloudpickle"]
+dev = [{ include-group = "test" }, { include-group = "typecheck" }]
+# Type-checking toolchain (PEP 735 dependency group): mypy plus the type stubs.
+# The mirrors-mypy pre-commit hook cannot read dependency groups, so its
+# additional_dependencies in .pre-commit-config.yaml must be kept in sync with
+# this list by hand.
+typecheck = [
+    "mypy",
+    "types-docutils",
+    "types-PyYAML",
+    "types-setuptools",
+    "pytest",  # so the test suite type-checks against real pytest types
+    "cloudpickle",
+]
 
-[tool.setuptools.packages]
-find = { namespaces = false }
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.targets.wheel]
+packages = ["donfig"]
+
+# `hatch run test:run` — an easy task runner for new contributors.
+[tool.hatch.envs.test]
+features = ["test"]
+
+[tool.hatch.envs.test.scripts]
+run = "pytest {args:--cov=donfig donfig}"
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+testpaths = ["donfig"]
+addopts = ["-ra", "--strict-config", "--strict-markers"]
+xfail_strict = true
+log_cli_level = "INFO"
+log_level = "INFO"
+filterwarnings = ["error"]
+
+[tool.repo-review]
+ignore = [
+    # donfig ships docs under `doc/` and keeps tests inside the package
+    # (`donfig/tests/`) rather than a src-layout; both are intentional.
+    "PY004",
+    "PY005",
+    # Adding the doc/markdown formatters (blacken-docs etc.) is out of scope for
+    # this packaging change.
+    "PC111",
+    "PC170",
+    "PC180",
+]
 
 [tool.mypy]
 python_version = "3.10"
@@ -48,42 +97,38 @@ python_version = "3.10"
 platform = "linux"
 # platform = win32
 # platform = darwin
+strict = true
 allow_untyped_decorators = false
-ignore_missing_imports = true
-no_implicit_optional = true
-show_error_codes = true
-warn_redundant_casts = true
-warn_unused_ignores = true
 warn_unreachable = true
-warn_unused_configs = true
+enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
 
-[tool.black]
+[[tool.mypy.overrides]]
+# cloudpickle ships neither inline types nor a stubs package.
+module = ["cloudpickle"]
+ignore_missing_imports = true
+
+[tool.codespell]
+# Vendored, minified js-yaml bundle used by the docs config converter — not prose.
+skip = "doc/_static/js-yaml.min.js"
+# `THIRDPARTY` is a required isort section keyword, not a misspelling.
+ignore-words-list = "thirdparty"
+
+[tool.ruff]
 line-length = 120
-exclude = '''
-(
-  \.git
-  | build
-  | dist
-  | donfig/version\.py
-)
 
-'''
+[tool.ruff.lint]
+# E/W/F replace flake8, I replaces isort, UP replaces pyupgrade (the target
+# version is inferred from requires-python), and B adds flake8-bugbear.
+select = ["B", "E", "F", "I", "UP", "W"]
+ignore = [
+    "E721", # type comparisons
+    "E731", # lambda assignment
+    "E741", # ambiguous variable names
+]
 
-[tool.isort]
-sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
-profile = "black"
-skip_gitignore = true
-force_to_top = ["true"]
-default_section = "THIRDPARTY"
-known_first_party = ["donfig"]
-skip = ["donfig/version.py"]
+[tool.ruff.lint.per-file-ignores]
+# flake8 excluded __init__.py entirely; keep its re-export/import-order latitude.
+"**/__init__.py" = ["E402", "F401", "F811"]
 
-[tool.versioneer]
-VCS = "git"
-style = "pep440"
-versionfile_source = "donfig/version.py"
-versionfile_build = "donfig/version.py"
-tag_prefix = "v"
-
-[tool.coverage.run]
-omit = ["donfig/version.py", "versioneer.py"]
+[tool.ruff.lint.isort]
+known-first-party = ["donfig"]

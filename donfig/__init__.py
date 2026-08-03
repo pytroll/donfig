@@ -1,6 +1,11 @@
-from . import version  # noqa
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _version
+
 from .config_obj import Config, deserialize, serialize
 
-__all__ = ["Config", "deserialize", "serialize"]
+try:
+    __version__ = _version("donfig")
+except PackageNotFoundError:  # pragma: no cover - source tree without metadata
+    __version__ = "0.0.0.dev0"
 
-__version__ = version.get_versions()["version"]
+__all__ = ["Config", "deserialize", "serialize"]

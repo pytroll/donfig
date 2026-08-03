@@ -1,13 +1,17 @@
 #!/usr/bin/env python
 # Copyright (c) 2018- Donfig Developers
 # Copyright (c) 2014-2018, Anaconda, Inc. and contributors
+from __future__ import annotations
+
 import os
 import site
 import stat
 import subprocess
 import sys
 from collections import OrderedDict
+from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
+from typing import Any
 
 import cloudpickle
 import pytest
@@ -30,7 +34,7 @@ CONFIG_NAME = "mytest"
 ENV_PREFIX = CONFIG_NAME.upper() + "_"
 
 
-def test_canonical_name():
+def test_canonical_name() -> None:
     c = {"foo-bar": 1, "fizz_buzz": 2}
     assert canonical_name("foo-bar", c) == "foo-bar"
     assert canonical_name("foo_bar", c) == "foo-bar"
@@ -40,7 +44,7 @@ def test_canonical_name():
     assert canonical_name("new_key", c) == "new_key"
 
 
-def test_update():
+def test_update() -> None:
     a = {"x": 1, "y": {"a": 1}}
     b = {"x": 2, "z": 3, "y": OrderedDict({"b": 2})}
     update(b, a)
@@ -52,7 +56,7 @@ def test_update():
     assert b == {"x": 2, "y": {"a": 3, "b": 2}, "z": 3}
 
 
-def test_update_new_defaults():
+def test_update_new_defaults() -> None:
     d = {"x": 1, "y": 1, "z": {"a": 1, "b": 1}}
     o = {"x": 1, "y": 2, "z": {"a": 1, "b": 2}, "c": 2, "c2": {"d": 2}}
     n = {"x": 3, "y": 3, "z": OrderedDict({"a": 3, "b": 3}), "c": 3, "c2": {"d": 3}}
@@ -67,8 +71,8 @@ def test_update_new_defaults():
     assert update(o, n, priority="new-defaults", defaults=None) == update(o, n, priority="old")
 
 
-def test_update_defaults():
-    defaults = [
+def test_update_defaults() -> None:
+    defaults: list[Mapping[str, Any]] = [
         {"a": 1, "b": {"c": 1}},
         {"a": 2, "b": {"d": 2}},
     ]
@@ -78,15 +82,27 @@ def test_update_defaults():
     new = {"a": 0, "b": {"c": 0, "d": 0}, "new-extra": 0}
     config.update_defaults(new)
 
-    assert defaults == [
+    assert config.defaults == [
         {"a": 1, "b": {"c": 1}},
         {"a": 2, "b": {"d": 2}},
         {"a": 0, "b": {"c": 0, "d": 0}, "new-extra": 0},
     ]
+    # the caller's list is copied on init, not aliased
+    assert defaults == [
+        {"a": 1, "b": {"c": 1}},
+        {"a": 2, "b": {"d": 2}},
+    ]
     assert config.to_dict() == {"a": 0, "b": {"c": 0, "d": 3}, "extra": 0, "new-extra": 0}
 
 
-def test_merge():
+def test_defaults_accepts_any_sequence() -> None:
+    config = Config(CONFIG_NAME, defaults=({"a": 1}, {"b": 2}))
+    assert config.to_dict() == {"a": 1, "b": 2}
+    config.update_defaults({"c": 3})
+    assert config.get("c") == 3
+
+
+def test_merge() -> None:
     a = {"x": 1, "y": {"a": 1}}
     b = {"x": 2, "z": 3, "y": {"b": 2}}
 
@@ -96,7 +112,15 @@ def test_merge():
     assert c == expected
 
 
-def test_collect_yaml_paths():
+def test_config_merge() -> None:
+    config = Config(CONFIG_NAME)
+    config.clear()
+    config.update({"x": 1, "y": {"a": 1}})
+    config.merge({"y": {"b": 2}}, {"z": 3})
+    assert config.to_dict() == {"x": 1, "y": {"a": 1, "b": 2}, "z": 3}
+
+
+def test_collect_yaml_paths() -> None:
     a = {"x": 1, "y": {"a": 1}}
     b = {"x": 2, "z": 3, "y": {"b": 2}}
 
@@ -117,7 +141,7 @@ def test_collect_yaml_paths():
             assert config == expected
 
 
-def test_collect_yaml_dir():
+def test_collect_yaml_dir() -> None:
     a = {"x": 1, "y": {"a": 1}}
     b = {"x": 2, "z": 3, "y": {"b": 2}}
 
@@ -139,7 +163,7 @@ def test_collect_yaml_dir():
 
 
 @contextmanager
-def no_read_permissions(path):
+def no_read_permissions(path: str) -> Iterator[None]:
     perm_orig = stat.S_IMODE(os.stat(path).st_mode)
     perm_new = perm_orig ^ stat.S_IREAD
     try:
@@ -151,7 +175,7 @@ def no_read_permissions(path):
 
 @pytest.mark.skipif(sys.platform == "win32", reason="Can't make writeonly file on windows")
 @pytest.mark.parametrize("kind", ["directory", "file"])
-def test_collect_yaml_permission_errors(tmpdir, kind):
+def test_collect_yaml_permission_errors(tmpdir: Any, kind: str) -> None:
     a = {"x": 1, "y": 2}
     b = {"y": 3, "z": 4}
 
@@ -166,7 +190,7 @@ def test_collect_yaml_permission_errors(tmpdir, kind):
 
     if kind == "directory":
         cant_read = dir_path
-        expected = {}
+        expected: dict[str, int] = {}
     else:
         cant_read = a_path
         expected = b
@@ -176,7 +200,7 @@ def test_collect_yaml_permission_errors(tmpdir, kind):
         assert config == expected
 
 
-def test_collect_yaml_malformed_file(tmpdir):
+def test_collect_yaml_malformed_file(tmpdir: Any) -> None:
     dir_path = str(tmpdir)
     fil_path = os.path.join(dir_path, "a.yaml")
 
@@ -190,7 +214,7 @@ def test_collect_yaml_malformed_file(tmpdir):
     assert "original error message" in str(rec.value)
 
 
-def test_collect_yaml_no_top_level_dict(tmpdir):
+def test_collect_yaml_no_top_level_dict(tmpdir: Any) -> None:
     dir_path = str(tmpdir)
     fil_path = os.path.join(dir_path, "a.yaml")
 
@@ -204,7 +228,7 @@ def test_collect_yaml_no_top_level_dict(tmpdir):
     assert "must have a dict" in str(rec.value)
 
 
-def test_env():
+def test_env() -> None:
     env = {
         ENV_PREFIX + "A_B": "123",
         ENV_PREFIX + "C": "True",
@@ -229,10 +253,10 @@ def test_env():
     assert res == expected
 
 
-def test_collect():
+def test_collect() -> None:
     a = {"x": 1, "y": {"a": 1}}
     b = {"x": 2, "z": 3, "y": {"b": 2}}
-    env = {ENV_PREFIX + "W": 4}
+    env: dict[str, Any] = {ENV_PREFIX + "W": 4}
 
     expected = {
         "w": 4,
@@ -249,21 +273,21 @@ def test_collect():
             with open(fn2, "w") as f:
                 yaml.dump(b, f)
 
-            config = config.collect([fn1, fn2], env=env)
-            assert config == expected
+            result = config.collect([fn1, fn2], env=env)
+            assert result == expected
 
 
-def test_collect_env_none():
+def test_collect_env_none() -> None:
     os.environ[ENV_PREFIX + "FOO"] = "bar"
     config = Config(CONFIG_NAME)
     try:
-        config = config.collect([])
-        assert config == {"foo": "bar"}
+        result = config.collect([])
+        assert result == {"foo": "bar"}
     finally:
         del os.environ[ENV_PREFIX + "FOO"]
 
 
-def test_get():
+def test_get() -> None:
     test_config = Config(CONFIG_NAME)
     test_config.config = {"x": 1, "y": {"a": 2}}
 
@@ -278,7 +302,7 @@ def test_get():
         test_config["y.b"]
 
 
-def test_contains():
+def test_contains() -> None:
     test_config = Config(CONFIG_NAME)
     test_config.config = {"x": 1, "y": {"a": 2}}
 
@@ -287,7 +311,7 @@ def test_contains():
     assert "y.b" not in test_config
 
 
-def test_ensure_file(tmpdir):
+def test_ensure_file(tmpdir: Any) -> None:
     a = {"x": 1, "y": {"a": 1}}
     b = {"x": 123}
 
@@ -329,7 +353,7 @@ def test_ensure_file(tmpdir):
     assert not result
 
 
-def test_set():
+def test_set() -> None:
     config = Config(CONFIG_NAME)
     with config.set(abc=123):
         assert config.config["abc"] == 123
@@ -352,7 +376,7 @@ def test_set():
     assert config.config["abc"]["x"] == 123
 
 
-def test_set_kwargs():
+def test_set_kwargs() -> None:
     config = Config(CONFIG_NAME)
     with config.set(foo__bar=1, foo__baz=2):
         assert config.config["foo"] == {"bar": 1, "baz": 2}
@@ -369,7 +393,7 @@ def test_set_kwargs():
     assert "foo" not in config.config
 
 
-def test_set_nested():
+def test_set_nested() -> None:
     config = Config(CONFIG_NAME)
     with config.set({"abc": {"x": 123}}):
         assert config.config["abc"] == {"x": 123}
@@ -379,7 +403,7 @@ def test_set_nested():
     assert "abc" not in config.config
 
 
-def test_set_hard_to_copyables():
+def test_set_hard_to_copyables() -> None:
     import threading
 
     config = Config(CONFIG_NAME)
@@ -389,7 +413,7 @@ def test_set_hard_to_copyables():
 
 
 @pytest.mark.parametrize("mkdir", [True, False])
-def test_ensure_file_directory(mkdir, tmpdir):
+def test_ensure_file_directory(mkdir: bool, tmpdir: Any) -> None:
     a = {"x": 1, "y": {"a": 1}}
 
     source = os.path.join(str(tmpdir), "source.yaml")
@@ -408,7 +432,7 @@ def test_ensure_file_directory(mkdir, tmpdir):
     assert os.path.exists(os.path.join(dest, "source.yaml"))
 
 
-def test_ensure_file_defaults_to_TEST_CONFIG_directory(tmpdir):
+def test_ensure_file_defaults_to_TEST_CONFIG_directory(tmpdir: Any) -> None:
     a = {"x": 1, "y": {"a": 1}}
     source = os.path.join(str(tmpdir), "source.yaml")
     with open(source, "w") as f:
@@ -428,7 +452,7 @@ def test_ensure_file_defaults_to_TEST_CONFIG_directory(tmpdir):
     assert os.path.split(fn)[1] == os.path.split(source)[1]
 
 
-def test_rename():
+def test_rename() -> None:
     config = Config(CONFIG_NAME)
     aliases = {"foo_bar": "foo.bar"}
     config.config = {"foo-bar": 123}
@@ -436,8 +460,8 @@ def test_rename():
     assert config.config == {"foo": {"bar": 123}}
 
 
-def test_refresh():
-    defaults = []
+def test_refresh() -> None:
+    defaults: list[Mapping[str, Any]] = []
     config = Config(CONFIG_NAME, defaults=defaults)
 
     config.update_defaults({"a": 1})
@@ -463,7 +487,7 @@ def test_refresh():
         ({"a": "A", "b": [1, "2", "$FOO"]}, {"a": "A", "b": [1, "2", "foo"]}),
     ],
 )
-def test_expand_environment_variables(inp, out):
+def test_expand_environment_variables(inp: Any, out: Any) -> None:
     try:
         os.environ["FOO"] = "foo"
         assert expand_environment_variables(inp) == out
@@ -471,7 +495,7 @@ def test_expand_environment_variables(inp, out):
         del os.environ["FOO"]
 
 
-def test_env_var_canonical_name(monkeypatch):
+def test_env_var_canonical_name(monkeypatch: pytest.MonkeyPatch) -> None:
     value = 3
     monkeypatch.setenv(ENV_PREFIX + "A_B", str(value))
     config = Config(CONFIG_NAME)
@@ -480,7 +504,7 @@ def test_env_var_canonical_name(monkeypatch):
     assert config.get("a-b") == value
 
 
-def test_get_set_canonical_name():
+def test_get_set_canonical_name() -> None:
     c = {"x-y": {"a_b": 123}}
     config = Config(CONFIG_NAME)
     config.update(c)
@@ -500,7 +524,7 @@ def test_get_set_canonical_name():
 
 
 @pytest.mark.parametrize("key", ["custom_key", "custom-key"])
-def test_get_set_roundtrip(key):
+def test_get_set_roundtrip(key: str) -> None:
     value = 123
     config = Config(CONFIG_NAME)
     with config.set({key: value}):
@@ -508,11 +532,11 @@ def test_get_set_roundtrip(key):
         assert config.get("custom-key") == value
 
 
-def test_merge_none_to_dict():
+def test_merge_none_to_dict() -> None:
     assert merge({"a": None, "c": 0}, {"a": {"b": 1}}) == {"a": {"b": 1}, "c": 0}
 
 
-def test_pprint(capsys):
+def test_pprint(capsys: pytest.CaptureFixture[str]) -> None:
     test_config = Config(CONFIG_NAME)
     test_config.config = {"x": 1, "y": {"a": 2}}
     test_config.pprint()
@@ -520,7 +544,7 @@ def test_pprint(capsys):
     assert cap_out == """{'x': 1, 'y': {'a': 2}}\n"""
 
 
-def test_to_dict():
+def test_to_dict() -> None:
     test_config = Config(CONFIG_NAME)
     test_config.config = {"x": 1, "y": {"a": 2}}
     d = test_config.to_dict()
@@ -532,7 +556,7 @@ def test_to_dict():
     assert d["y"] != test_config.config["y"]
 
 
-def test_path_includes_site_prefix():
+def test_path_includes_site_prefix() -> None:
     command = (
         "import site, os; "
         'prefix = os.path.join("include", "this", "path"); '
@@ -546,7 +570,7 @@ def test_path_includes_site_prefix():
     subprocess.check_call([sys.executable, "-c", command])
 
 
-def test__get_paths(monkeypatch):
+def test__get_paths(monkeypatch: pytest.MonkeyPatch) -> None:
     # These settings, if present, would interfere with these tests
     # We temporarily remove them to avoid interference from the
     # machine where tests are being run.
@@ -586,14 +610,23 @@ def test__get_paths(monkeypatch):
         assert len(paths) == len(set(paths))
 
 
-def test_serialization():
+def test_paths_not_mutated(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("MYPKG_CONFIG", "foo-bar")
+    paths = ["/etc/mypkg"]
+    config = Config("mypkg", paths=paths)
+    assert config.paths == ["/etc/mypkg", "foo-bar"]
+    # the caller's list is copied on init, not aliased
+    assert paths == ["/etc/mypkg"]
+
+
+def test_serialization() -> None:
     config = Config(CONFIG_NAME)
     config.set(one_key="one_value")
     new_config = cloudpickle.loads(cloudpickle.dumps(config))
     assert new_config.get("one_key") == "one_value"
 
 
-def test_deprecations_rename():
+def test_deprecations_rename() -> None:
     config = Config(CONFIG_NAME, deprecations={"fuse_ave_width": "optimization.fuse.ave-width"})
     with pytest.warns(Warning) as info, config.set(fuse_ave_width=123):
         assert config.get("optimization.fuse.ave-width") == 123
@@ -601,19 +634,19 @@ def test_deprecations_rename():
     assert "optimization.fuse.ave-width" in str(info[0].message)
 
 
-def test_deprecations_removed():
+def test_deprecations_removed() -> None:
     config = Config(CONFIG_NAME, deprecations={"fuse_ave_width": None})
     with pytest.raises(ValueError):
         config.set(fuse_ave_width=123)
 
 
-def test_config_serialization_functions():
+def test_config_serialization_functions() -> None:
     serialized = serialize({"array": {"svg": {"size": 150}}})
     config_dict = deserialize(serialized)
     assert config_dict["array"]["svg"]["size"] == 150
 
 
-def test_config_object_serialization():
+def test_config_object_serialization() -> None:
     config = Config(CONFIG_NAME)
     config.set({"array.svg.size": 150})
     ser_config = config.serialize()
@@ -623,7 +656,7 @@ def test_config_object_serialization():
     assert deser_config.get("array.svg.size") == 150
 
 
-def test_config_inheritance(monkeypatch):
+def test_config_inheritance(monkeypatch: pytest.MonkeyPatch) -> None:
     ser_dict = serialize({"array": {"svg": {"size": 150}}})
     monkeypatch.setenv(f"{ENV_PREFIX}_INTERNAL_INHERIT_CONFIG", ser_dict)
     config = Config(CONFIG_NAME)

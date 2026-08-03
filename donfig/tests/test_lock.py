@@ -7,7 +7,7 @@ import pickle
 from .._lock import SerializableLock
 
 
-def test_SerializableLock():
+def test_SerializableLock() -> None:
     a = SerializableLock()
     b = SerializableLock()
     with a:
@@ -42,7 +42,7 @@ def test_SerializableLock():
                     pass
 
 
-def test_SerializableLock_name_collision():
+def test_SerializableLock_name_collision() -> None:
     a = SerializableLock("a")
     b = SerializableLock("b")
     c = SerializableLock("a")
@@ -53,7 +53,7 @@ def test_SerializableLock_name_collision():
     assert d.lock not in (a.lock, b.lock, c.lock)
 
 
-def test_SerializableLock_locked():
+def test_SerializableLock_locked() -> None:
     a = SerializableLock("a")
     assert not a.locked()
     with a:
@@ -61,7 +61,7 @@ def test_SerializableLock_locked():
     assert not a.locked()
 
 
-def test_SerializableLock_acquire_blocking():
+def test_SerializableLock_acquire_blocking() -> None:
     a = SerializableLock("a")
     assert a.acquire(blocking=True)
     assert not a.acquire(blocking=False)

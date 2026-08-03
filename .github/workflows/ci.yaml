@@ -2,7 +2,30 @@ name: CI
 
 on: [push, pull_request]
 
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  typecheck:
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          # hatch-vcs needs the full history to resolve the version when uv
+          # builds the project environment
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+
+      - name: Run mypy
+        run: uv run --group typecheck mypy donfig
+
   test:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -14,14 +37,15 @@ jobs:
     env:
       PYTHON_VERSION: ${{ matrix.python-version }}
       OS: ${{ matrix.os }}
-      ACTIONS_ALLOW_UNSECURE_COMMANDS: true
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup Conda Environment
-        uses: conda-incubator/setup-miniconda@v4
+        uses: conda-incubator/setup-miniconda@8ee1f361103df19b6f8c8655fd3967a8ecb162d5 # v4
         with:
           environment-file: continuous_integration/environment.yaml
           miniforge-version: latest
@@ -47,7 +71,7 @@ jobs:
         if: runner.os == 'Windows'
 
       - name: Upload unittest coverage to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
           flags: unittests
           files: ./coverage.xml
