@@ -42,7 +42,19 @@ docs = [
 [dependency-groups]
 test = ["pytest", "cloudpickle"]
 docs = ["sphinx>=4.0.0", "numpydoc", "pytest", "cloudpickle"]
-dev = [{ include-group = "test" }]
+dev = [{ include-group = "test" }, { include-group = "typecheck" }]
+# Type-checking toolchain (PEP 735 dependency group): mypy plus the type stubs.
+# The mirrors-mypy pre-commit hook cannot read dependency groups, so its
+# additional_dependencies in .pre-commit-config.yaml must be kept in sync with
+# this list by hand.
+typecheck = [
+    "mypy",
+    "types-docutils",
+    "types-PyYAML",
+    "types-setuptools",
+    "pytest",  # so the test suite type-checks against real pytest types
+    "cloudpickle",
+]
 
 [tool.hatch.version]
 source = "vcs"
@@ -72,12 +84,6 @@ ignore = [
     # (`donfig/tests/`) rather than a src-layout; both are intentional.
     "PY004",
     "PY005",
-    # MyPy strictness is tightened in a separate typing PR, not here.
-    "MY101",
-    "MY102",
-    "MY104",
-    "MY105",
-    "MY106",
     # Adding the doc/markdown formatters (blacken-docs etc.) is out of scope for
     # this packaging change.
     "PC111",
@@ -91,14 +97,15 @@ python_version = "3.10"
 platform = "linux"
 # platform = win32
 # platform = darwin
+strict = true
 allow_untyped_decorators = false
-ignore_missing_imports = true
-no_implicit_optional = true
-show_error_codes = true
-warn_redundant_casts = true
-warn_unused_ignores = true
 warn_unreachable = true
-warn_unused_configs = true
+enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
+
+[[tool.mypy.overrides]]
+# cloudpickle ships neither inline types nor a stubs package.
+module = ["cloudpickle"]
+ignore_missing_imports = true
 
 [tool.codespell]
 # Vendored, minified js-yaml bundle used by the docs config converter — not prose.

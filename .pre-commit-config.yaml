@@ -23,12 +23,14 @@ repos:
         # Use pyproject.toml if possible instead of adding command line parameters here
         args: [ --warn-unused-configs ]
         additional_dependencies:
+          # Keep in sync with the `typecheck` dependency group in pyproject.toml
           # Type stubs
           - types-docutils
           - types-PyYAML
           - types-setuptools
           # Typed libraries
           - pytest
+          - cloudpickle
   - repo: https://github.com/scientific-python/cookie
     rev: 2026.04.04
     hooks:
