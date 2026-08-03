@@ -421,7 +421,9 @@ class Config:
                 *[os.path.join(prefix, "etc", name) for prefix in site.PREFIXES],
                 os.path.join(os.path.expanduser("~"), ".config", name),
             ]
-
+        else:
+            # copy so the env-var append below never mutates the caller's list
+            paths = list(paths)
         if env_prefix is None:
             env_prefix = f"{name.upper()}_"
         if env is None:
