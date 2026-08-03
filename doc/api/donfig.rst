@@ -12,6 +12,14 @@ donfig.config\_obj module
     :undoc-members:
     :show-inheritance:
 
+donfig.typed module
+-------------------
+
+.. automodule:: donfig.typed
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 donfig.utils module
 -------------------
 
