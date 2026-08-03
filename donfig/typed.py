@@ -27,6 +27,7 @@ typed accessors live in the consuming application.
 from __future__ import annotations
 
 import difflib
+import threading
 import warnings
 from collections.abc import Callable, Mapping
 from contextvars import ContextVar, Token
@@ -92,8 +93,14 @@ def get_path(cfg: object, key: str) -> object:
                 return obj[remainder]
             except KeyError:
                 raise KeyError(key) from None
+        # A prior segment resolved to a scalar leaf, but the key has more
+        # segments — descend no further. Without this guard, `hasattr` would
+        # match ordinary Python attributes/methods (e.g. `logging_level.upper`
+        # returning `str.upper`) instead of raising for the invalid key.
+        if not is_dataclass(obj):
+            raise KeyError(key)
         field_name = _resolve_field(obj, segment)
-        if not hasattr(obj, field_name):
+        if field_name not in {f.name for f in fields(obj)}:
             raise KeyError(key)
         obj = getattr(obj, field_name)
     return obj
@@ -117,14 +124,20 @@ def _replace_recursive(obj: Any, segments: list[str], value: object, key: str) -
     if isinstance(obj, Mapping):
         remainder = ".".join(segments)
         return {**obj, remainder: value}
-    field_name = _resolve_field(obj, segment)
-    if not hasattr(obj, field_name):
+    # See the scalar-leaf guard in `get_path`: never descend past a non-node.
+    if not is_dataclass(obj):
         raise KeyError(key)
+    field_name = _resolve_field(obj, segment)
+    if field_name not in {f.name for f in fields(obj)}:
+        raise KeyError(key)
+    # `is_dataclass` narrows `obj` to `... | type[...]`, which `replace` rejects;
+    # at runtime `obj` is always a dataclass *instance* here, so re-widen to Any.
+    node: Any = obj
     if len(segments) == 1:
-        return replace(obj, **{field_name: value})
-    child = getattr(obj, field_name)
+        return replace(node, **{field_name: value})
+    child = getattr(node, field_name)
     new_child = _replace_recursive(child, segments[1:], value, key)
-    return replace(obj, **{field_name: new_child})
+    return replace(node, **{field_name: new_child})
 
 
 # --- typo suggestions -----------------------------------------------------
@@ -152,8 +165,11 @@ def _resolve_for_suggestion(cfg: object, key: str) -> tuple[str, list[str], str]
         if isinstance(obj, Mapping):
             # the remainder indexes into an open mapping as a single key
             return prefix, _children(obj), ".".join(segments[i:])
+        if not is_dataclass(obj):
+            # the key descends below a scalar leaf: nothing to suggest there
+            return prefix, [], segment
         field_name = _resolve_field(obj, segment)
-        if not hasattr(obj, field_name):
+        if field_name not in {f.name for f in fields(obj)}:
             return prefix, _children(obj), segment
         obj = getattr(obj, field_name)
         prefix = f"{prefix}.{segment}" if prefix else segment
@@ -320,13 +336,18 @@ class TypedConfigManager(Generic[ConfigT]):
         self._deprecation_warning = deprecation_warning
         self._base: ConfigT = build_base()
         self._scope: ContextVar[ConfigT] = ContextVar("typed_config_scope")
+        # Serializes read-modify-write of the process-global `_base` so
+        # concurrent `set`s to different keys don't lose updates (each rebuilds
+        # a whole immutable snapshot from `_base`).
+        self._lock = threading.Lock()
 
     # --- state resolution -------------------------------------------------
     def _current(self) -> ConfigT:
         return self._scope.get(self._base)
 
     def _enter_scope(self, prev_base: ConfigT, new: ConfigT) -> Token[ConfigT]:
-        self._base = prev_base
+        with self._lock:
+            self._base = prev_base
         return self._scope.set(new)
 
     def _exit_scope(self, token: Token[ConfigT]) -> None:
@@ -354,29 +375,34 @@ class TypedConfigManager(Generic[ConfigT]):
         if updates:
             all_updates.update(updates)
         all_updates.update(kwargs)
-        prev_base = self._base
-        # `scoped` layers on the current view (any active `with` overlay); it is
-        # what a `with config.set(...)` pins as its context-local scope. `permanent`
-        # layers on the global base, so a bare `set` nested inside a `with` block
-        # does not leak that block's overlay into the base.
-        scoped = self._current()
-        permanent = prev_base
-        for key, value in all_updates.items():
-            resolved = self._apply_deprecation(key, raise_on_removed=True)
-            try:
-                scoped = replace_path(scoped, resolved, value)
-                permanent = replace_path(permanent, resolved, value)
-            except KeyError:
-                raise unknown_key_error(key, permanent) from None
-        self._base = permanent
+        with self._lock:
+            prev_base = self._base
+            # `scoped` layers on the current view (any active `with` overlay); it is
+            # what a `with config.set(...)` pins as its context-local scope. `permanent`
+            # layers on the global base, so a bare `set` nested inside a `with` block
+            # does not leak that block's overlay into the base.
+            scoped = self._current()
+            permanent = prev_base
+            for key, value in all_updates.items():
+                resolved = self._apply_deprecation(key, raise_on_removed=True)
+                try:
+                    scoped = replace_path(scoped, resolved, value)
+                    permanent = replace_path(permanent, resolved, value)
+                except KeyError:
+                    raise unknown_key_error(key, permanent) from None
+            self._base = permanent
         return _ConfigSet(self, prev_base, scoped)
 
     # --- lifecycle --------------------------------------------------------
     def reset(self) -> None:
-        self._base = self._build_base()
+        # Rebuild outside the lock (`build_base` may read env/YAML) and swap
+        # atomically under it.
+        new_base = self._build_base()
+        with self._lock:
+            self._base = new_base
 
     def refresh(self) -> None:
-        self._base = self._build_base()
+        self.reset()
 
     # --- compat / introspection ------------------------------------------
     @property
