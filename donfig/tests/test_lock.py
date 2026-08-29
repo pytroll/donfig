@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # Copyright (c) 2022- Donfig Developers
 # Copyright (c) 2014-2018, Anaconda, Inc. and contributors
 
