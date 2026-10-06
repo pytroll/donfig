@@ -18,6 +18,7 @@ locations.
 
    installation
    configuration
+   typed
    Donfig API <api/donfig>
 
 
